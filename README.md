@@ -1,11 +1,17 @@
 # dsh-alert · 手机提醒
 
+[![test](https://github.com/ysl289/dsh-alert/actions/workflows/test.yml/badge.svg)](https://github.com/ysl289/dsh-alert/actions/workflows/test.yml)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![node](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](package.json)
+
 > AI 在电脑上干活，人在外面刷手机。跑完了、出错了、等你审批了 —— 手机上响一声。
 
 一个**独立**的 DeepSeek Harness 插件：不**要求**任何其它插件，只订阅宿主自己的会话事件。
 
 装了 dsh-im / cost-meter / pocket 之类的插件会**自动增强**（见[联动](#和你已装的插件联动)），
 没装也完全能用 —— 每一条联动都是可选的，缺了就安静地不生效。
+
+![设置面板](docs/screenshot.png)
 
 ## 它解决什么
 

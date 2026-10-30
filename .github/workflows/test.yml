@@ -1,0 +1,42 @@
+name: test
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: node ${{ matrix.node }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # 覆盖三个主流平台：插件最终跑在用户自己的机器上，
+        # 只在 Windows 上测过就发版是不负责任的。
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: [20, 22]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: 跑测试
+        # 真实 Cordis 验证需要宿主自带的副本（不在仓库里），
+        # 没设 CORDIS_ENTRY 时那两项会自动跳过。
+        run: node --test "test/*.test.mjs"
+
+      - name: 检查语法
+        run: |
+          node --check lib/index.js
+          node --check lib/rpc.js
+          node --check lib/settings.js
+          node --check lib/theme.js
+          node --check lib/integrations.js
+          node --check client/client.js
+        shell: bash
