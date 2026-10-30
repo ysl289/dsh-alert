@@ -458,18 +458,21 @@ window.__ModuleLoader__.load({
         id: 'qqbot', title: 'QQ', icon: 'robot',
         subtitle: '官方机器人，免费',
         ease: 7,
-        warn: '这条路最折腾：要个人实名认证、要拿到 openid，而 openid 不在后台界面上直接显示，得从消息事件里取。如果你没有现成的 QQ 机器人，建议先用 ntfy。',
+        warn: '这条路最折腾：要个人实名认证，还得从消息事件里抠出 openid。如果你没有现成的 QQ 机器人，建议先用 ntfy。',
         steps: [
           {
             text: '注册 QQ 开放平台并个人认证',
-            where: '电脑浏览器打开这个网址，用手机 QQ 扫码登录，然后按提示做个人实名认证',
+            where: '电脑浏览器打开 q.qq.com，用手机 QQ 扫码登录，然后按提示做个人实名认证',
             look: '认证通过后才能创建机器人（个人上限 5 个）',
             link: 'https://q.qq.com/', linkText: '打开 QQ 开放平台',
           },
           {
             text: '创建机器人，拿 AppID 和 AppSecret',
             where: '进开放平台后，左侧「机器人」→ 点「创建」→ 填资料 → 建好后进这个机器人的「开发设置」页',
-            look: 'AppID 是纯数字。AppSecret 要点「重置」才显示，且只显示一次，先复制下来',
+            look: 'AppID 是纯数字；AppSecret 点「重置」才显示，只显示一次',
+            note: [
+              '只要 AppID + AppSecret 两样就够了。机器人后台还有个「Token」字段 —— 官方已弃用那种鉴权方式，不用管它',
+            ],
           },
           {
             text: '把你自己加进「开发体验用户」',
@@ -477,17 +480,20 @@ window.__ModuleLoader__.load({
             look: '不加这一步，机器人给你发消息会直接失败',
           },
           {
-            text: '让机器人收到你的一条消息（为了拿 openid）',
+            text: '在手机 QQ 里给机器人发一句话',
             where: '打开手机 QQ → 搜索你刚创建的机器人名字 → 进聊天 → 随便发一句「你好」',
-            look: '这一步的目的不是测试，是让平台产生一条带 openid 的消息事件',
+            look: '发出去就行。这一步的目的是让平台产生一条「单聊消息事件」，里面才带 openid',
+            note: [
+              '官方把这个事件叫 C2C_MESSAGE_CREATE —— 你配的事件监听里要勾上它（或勾「单聊消息」），否则收不到',
+            ],
           },
           {
-            text: '去把 openid 找出来',
-            where: '去两个地方找：① 打开开放平台的「开发设置」，翻到消息/事件日志；② 如果你配过消息推送地址，打开你自己的接收端日志看',
-            look: '找一条 JSON，里面有 openid 字段（一长串字母数字）',
+            text: '从消息事件里取出 openid',
+            where: '如果你配了消息推送（webhook）：打开你自己的接收端日志，找 C2C_MESSAGE_CREATE 事件的 JSON\n如果没配推送：用官方 SDK（botpy / botgo / bot-node-sdk）本地跑一个最小接收端，把事件打印出来',
+            look: '事件的 d.author.user_openid 字段就是一长串字母数字，这才是 openid',
             note: [
-              'openid 不在后台首页直接显示，这是这条路最卡人的地方。找不到就用下面的替代方案。',
-              '替代方案：去 DSH 设置 → IM机器人 接一个 QQ 机器人（@xmanrui/dsh-im 支持扫码接入），然后在那边建「目标」，比手抠 openid 简单得多。',
+              'openid 不在后台界面上直接显示，必须从事件里取 —— 这是这条路最卡人的地方',
+              '替代方案（更省事）：去 DSH 设置 → IM机器人 接一个 QQ 机器人（@xmanrui/dsh-im 支持手机 QQ 扫码），然后在那边建「目标」，不用自己抠 openid',
             ],
           },
           {
@@ -496,7 +502,7 @@ window.__ModuleLoader__.load({
             look: 'QQ 收到消息 = 成功。',
             note: [
               'openid 是一长串字母数字，不是你的 QQ 号',
-              '报 40034105 → 你在 QQ 里关掉了「允许机器人主动发消息」，去机器人资料页打开',
+              '报 40034105 → 你在 QQ 机器人资料卡里关掉了「主动消息推送」。对应事件叫 C2C_MSG_REJECT，去机器人资料页重新打开',
             ],
           },
         ],
@@ -556,40 +562,56 @@ window.__ModuleLoader__.load({
         id: 'webhook', title: 'Webhook', icon: 'link',
         subtitle: '钉钉 / 飞书 / 企业微信群机器人',
         ease: 4,
+        warn: '这条路要先在群里加机器人、再配「安全设置」，比 ntfy 麻烦。如果你只是想手机收提醒，建议先用 ntfy。',
         steps: [
           {
-            text: '先在下面的「平台」下拉框里选你用的是哪个',
-            where: '页面下方表单的第一个下拉框，标着「平台」',
-            look: '选「钉钉群机器人」/「飞书群机器人」/「企业微信群机器人」。\n选完会自动套用该平台认的消息格式，你不用自己写 JSON',
+            text: '先拿到 Webhook 地址',
+            where: '钉钉群：点右上角「···」→「设置」→「智能群助手」→「添加机器人」→「自定义」\n飞书群：点右上角「···」→「设置」→「群机器人」→「添加机器人」→「自定义机器人」\n企业微信群：点右上角「···」→「群机器人」→「添加」→「新创建一个机器人」',
+            look: '创建完会给你一条 https 开头的地址。三种平台的地址长得不一样，看开头就能认出来：\n· oapi.dingtalk.com → 钉钉\n· open.feishu.cn → 飞书\n· qyapi.weixin.qq.com/cgi-bin/webhook → 企微群',
+            note: [
+              '钉钉和飞书在创建流程里强制要求配「安全设置」；企微群机器人没有这一步',
+              '别把「企微群机器人」和「企业微信自建应用」搞混 —— 那是两个完全不同的东西，后者要用上面的「微信」通道',
+            ],
           },
           {
-            text: '在群里添加一个自定义机器人，拿 Webhook 地址',
-            where: '钉钉群：群设置（右上角···）→「智能群助手」→「添加机器人」→「自定义」\n飞书群：群设置 →「群机器人」→「添加机器人」→「自定义机器人」\n企微群：群设置 →「群机器人」→「添加」→「新建」',
-            look: '创建完最后一步会给你一条 https 开头的地址，这就是 Webhook',
+            text: '如果要求配安全设置，选「自定义关键词」并填 DSH',
+            where: '就在刚才创建机器人的流程最后一页，会有一栏「安全设置」→ 勾选「自定义关键词」→ 在输入框里填 DSH',
+            look: '钉钉的叫「安全设置」，飞书叫「安全设置」，里面都有「自定义关键词」这一项',
+            note: [
+              '关键词必须原样出现在消息里，否则对方直接拒收。填 DSH 就行 —— 本插件发的每条消息标题都带 DSH',
+              '不要选「加签」：那需要额外算签名，本插件不支持',
+            ],
           },
           {
-            text: '安全设置选「自定义关键词」，关键词填 DSH',
-            where: '就在上一步创建机器人的流程里，会有一页让你选安全方式 → 点「自定义关键词」→ 在输入框里填 DSH',
-            look: '钉钉和飞书都强制要求配一种安全方式，选关键词最省事。',
-            note: ['关键词必须出现在消息里，否则对方直接拒收 —— 填 DSH 就行，本插件发的每条消息标题都带 DSH'],
+            text: '回来选「平台」，把地址粘进去',
+            where: '先在上面那个「平台」下拉框选对应的平台，再把整条地址粘进「Webhook 地址」框',
+            look: '平台选对了，发出去对方才认这个格式。选错会报「参数错误」或对方完全收不到',
           },
           {
-            text: '把 Webhook 地址粘到下面，点「发送测试」',
-            where: '整条地址填进下面标着「Webhook 地址」的输入框，再点页面下方蓝色「发送测试」按钮',
+            text: '点「发送测试」',
+            where: '页面下方蓝色「发送测试」按钮',
             look: '群里出现一条测试消息 = 成功。',
-            note: ['整条地址都要，包括 ? 后面的 access_token 部分'],
+            note: ['整条地址都要，包括 ?access_token= 或 /hook/ 后面那段'],
           },
         ],
         fields: [
-          { key: 'url', label: 'Webhook 地址', type: 'string', placeholder: 'https://oapi.dingtalk.com/robot/send?access_token=...', required: true, help: '整条地址都要，包括 ? 后面的参数。' },
-          { key: 'preset', label: '平台', type: 'select', placeholder: 'generic', options: [
-            { v: 'generic', label: '通用 JSON（自己写模板）' },
-            { v: 'dingtalk', label: '钉钉群机器人' },
-            { v: 'feishu', label: '飞书群机器人' },
-            { v: 'wecom', label: '企业微信群机器人' },
-            { v: 'slack', label: 'Slack' },
-            { v: 'discord', label: 'Discord' },
-          ], help: '选错平台会导致对方收不到（消息格式不认）。不确定就选「通用 JSON」。' },
+          {
+            key: 'url', label: 'Webhook 地址', type: 'string',
+            placeholder: 'https://oapi.dingtalk.com/robot/send?access_token=...',
+            required: true,
+            help: '钉钉 .../robot/send?access_token=xxx；飞书 .../bot/v2/hook/xxx；企微 .../webhook/send?key=xxx。整条都要，别截断。',
+          },
+          {
+            key: 'preset', label: '平台', type: 'select', placeholder: 'generic', options: [
+              { v: 'dingtalk', label: '钉钉群机器人' },
+              { v: 'feishu', label: '飞书群机器人' },
+              { v: 'wecom', label: '企业微信群机器人' },
+              { v: 'generic', label: '通用 JSON（自己写模板）' },
+              { v: 'slack', label: 'Slack' },
+              { v: 'discord', label: 'Discord' },
+            ],
+            help: '按你的地址开头选：oapi.dingtalk.com → 钉钉；open.feishu.cn → 飞书；qyapi.weixin.qq.com → 企微群。选错对方不认格式。',
+          },
         ],
       },
       {
@@ -1193,22 +1215,37 @@ window.__ModuleLoader__.load({
       },
 
       // ── Webhook ──
+      // 错误码来源：钉钉 300005 / 飞书 19001 / 企微 93000 是实测拿到的；
+      // 关键词与加签相关的码（310000 / 19021）需要真实 token 才能触发，标注为未实测。
       {
-        match: /errcode 310000|keywords not in content|关键词/i,
-        title: '钉钉/飞书的关键词校验没过',
+        match: /errcode 310000|keywords not in content|sign not match|19021|sign match fail|keyword not found/i,
+        title: '钉钉/飞书的安全设置没过',
         fix: [
-          '创建机器人时选了「自定义关键词」，消息里必须包含那个词',
-          '最简单的办法：把关键词设成 DSH，我们发的每条消息标题都带 DSH',
-          '或者改用「加签」方式，但那样更麻烦，建议用关键词',
+          '创建机器人时如果选了「自定义关键词」，消息里必须包含那个词',
+          '最简单的办法：把关键词设成 DSH —— 本插件发的每条消息标题都带 DSH',
+          '如果选的是「加签」，要额外算签名，本插件不支持，建议改成关键词方式',
         ],
       },
       {
-        match: /errcode 300001|token is not exist|invalid token/i,
-        title: 'Webhook 地址不对或机器人被删了',
-        fix: ['重新在群里加一次机器人，把新地址完整复制过来（包括 ?access_token= 后面那段）'],
+        match: /errcode 300005|token is not exist|19001|access token invalid/i,
+        title: 'Webhook 地址里的 token 无效',
+        fix: [
+          '地址没复制完整，或机器人已被删除/重置',
+          '重新在群里加一次机器人，把整条地址复制过来（包括 ?access_token= 或 /hook/ 后面那段）',
+          '钉钉的地址形如 https://oapi.dingtalk.com/robot/send?access_token=xxx；飞书形如 https://open.feishu.cn/open-apis/bot/v2/hook/xxx',
+        ],
       },
       {
-        match: /errcode 400|errcode 40058/i,
+        match: /errcode 93000|invalid webhook url/i,
+        title: '企业微信群机器人地址无效',
+        fix: [
+          '企微群机器人的地址形如 https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx',
+          '注意别把「企业微信自建应用」和「企微群机器人」搞混 —— 那是两个不同的东西',
+          '重新在群设置里加一次机器人拿新地址',
+        ],
+      },
+      {
+        match: /errcode 400|errcode 40058|msgtype|invalid param/i,
         title: '消息格式和平台对不上',
         fix: ['回到上面把「平台」选成你实际用的那个（钉钉 / 飞书 / 企微群），选错格式对方不认'],
       },

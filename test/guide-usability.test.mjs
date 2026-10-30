@@ -485,6 +485,33 @@ test('引导代码里要注明事实来源（文档或 README）', () => {
   assert.match(im, /README|PROACTIVE_DELIVERY|事实来源|文档/, 'IM 面板应注明依据的文档');
 });
 
+// ── QQ 官方事实（依据 bot.q.qq.com 文档核对）──
+
+test('QQ 引导要点明「Token 已弃用，只要 AppID + AppSecret」', () => {
+  const g = byId.qqbot;
+  const all = JSON.stringify(g);
+  assert.match(all, /Token/, '应提到 Token 字段');
+  assert.match(all, /弃用|不用管/, '应说明 Token 已弃用，别让用户去填');
+  assert.match(all, /AppID[\s\S]{0,20}AppSecret/, '应明确这两样就够了');
+});
+
+test('QQ 引导要说 openid 来自 C2C_MESSAGE_CREATE 事件', () => {
+  const all = JSON.stringify(byId.qqbot);
+  assert.match(all, /C2C_MESSAGE_CREATE|单聊消息事件/, '官方事件名要写出来，方便配 intents');
+});
+
+test('QQ 引导要把 40034105 对应到 C2C_MSG_REJECT', () => {
+  const all = JSON.stringify(byId.qqbot);
+  assert.match(all, /40034105/, '要写错误码');
+  assert.match(all, /C2C_MSG_REJECT|主动消息推送/, '要说明这是用户关了主动推送');
+});
+
+test('QQ 引导必须给出「用 dsh-im 更省事」的替代方案', () => {
+  // 这条路客观很难，不给退路等于坑用户
+  const all = JSON.stringify(byId.qqbot);
+  assert.match(all, /IM机器人|dsh-im/, '要指向更省事的替代路径');
+});
+
 // ── 出错排查 ──
 
 test('失败时给出可照做的排查建议，而不是只甩报错', () => {
