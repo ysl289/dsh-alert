@@ -2466,7 +2466,9 @@ window.__ModuleLoader__.load({
       };
 
       ctx.slots.inject('settings.section', function () {
-        return ctx.slots.register(
+        // 先挂图标替换（宿主没给图标 API，只能这样），再注册面板本身
+        var stopNavIcon = decorateSettingsNavIcon('手机提醒', 'bell');
+        var unregister = ctx.slots.register(
           {
             name: 'settings.section',
             id: 'dsh-alert',
@@ -2476,7 +2478,158 @@ window.__ModuleLoader__.load({
           },
           AlertPanel,
         );
+        return function () {
+          stopNavIcon();
+          unregister();
+        };
       });
+    }
+
+    /**
+     * 把设置侧边栏里「手机提醒」那一项的齿轮换成铃铛。
+     *
+     * 为什么要这么绕：
+     *   宿主把图标**按 section id 硬编码**了，只认 account / models /
+     *   agent-presets / plugins / archived-sessions 五个 id，其余一律回退成齿轮。
+     *   register({name,id,order,label,inject}) 里根本没有 icon 字段 ——
+     *   也就是说插件侧改不了这个图标，所有第三方插件在设置里都长一个齿轮样。
+     *
+     *   （来源：dsh-client-ui-settings-general/lib/client.js 的 navIcon(id)）
+     *
+     * 做法：宿主导航按钮里只有一个装标题的 span，我们据标题文字认出自己那一项，
+     * 把前面的 svg 换掉。宿主要是改版找不到了，就安静地什么都不做，
+     * 不会报错、不会影响功能。
+     *
+     * @param {string} label  我们注册时用的标题
+     * @param {string} iconName  要用哪个内置图标
+     * @returns {() => void} 停止函数
+     */
+    function decorateSettingsNavIcon(label, iconName) {
+      if (typeof document === 'undefined' || typeof MutationObserver === 'undefined') {
+        return function () {};
+      }
+
+      let stopped = false;
+      let timer = null;
+
+      var NS = 'http://www.w3.org/2000/svg';
+
+      function buildSvg() {
+        var el = document.createElementNS(NS, 'svg');
+        el.setAttribute('viewBox', '0 0 24 24');
+        el.setAttribute('width', '16');
+        el.setAttribute('height', '16');
+        el.setAttribute('fill', 'none');
+        el.setAttribute('stroke', 'currentColor');
+        el.setAttribute('stroke-width', '1.5');
+        el.setAttribute('stroke-linecap', 'round');
+        el.setAttribute('stroke-linejoin', 'round');
+        el.setAttribute('aria-hidden', 'true');
+        el.setAttribute('focusable', 'false');
+        el.setAttribute('data-dsh-alert-icon', '1');
+        el.style.display = 'block';
+        el.style.flex = 'none';
+
+        // ICON_PATHS 的值是位置参数数组，映射规则与 makeIcon 保持一致
+        var parts = (typeof ICON_PATHS !== 'undefined' && ICON_PATHS[iconName]) || [];
+        for (var i = 0; i < parts.length; i += 1) {
+          var part = parts[i];
+          var kind = part[0];
+          var node = null;
+          if (kind === 'path') {
+            node = document.createElementNS(NS, 'path');
+            node.setAttribute('d', String(part[1]));
+          } else if (kind === 'circle') {
+            node = document.createElementNS(NS, 'circle');
+            node.setAttribute('cx', String(part[1]));
+            node.setAttribute('cy', String(part[2]));
+            node.setAttribute('r', String(part[3]));
+          } else if (kind === 'line') {
+            node = document.createElementNS(NS, 'line');
+            node.setAttribute('x1', String(part[1]));
+            node.setAttribute('y1', String(part[2]));
+            node.setAttribute('x2', String(part[3]));
+            node.setAttribute('y2', String(part[4]));
+          } else if (kind === 'rect') {
+            node = document.createElementNS(NS, 'rect');
+            node.setAttribute('x', String(part[1]));
+            node.setAttribute('y', String(part[2]));
+            node.setAttribute('width', String(part[3]));
+            node.setAttribute('height', String(part[4]));
+            node.setAttribute('rx', String(part[5] || 0));
+          }
+          if (node) el.appendChild(node);
+        }
+        return el;
+      }
+
+      function decorate() {
+        if (stopped) return;
+        var nodes;
+        try {
+          nodes = document.querySelectorAll('button > span');
+        } catch {
+          return;
+        }
+        for (var i = 0; i < nodes.length; i += 1) {
+          var span = nodes[i];
+          if (String(span.textContent || '').trim() !== label) continue;
+
+          var btn = span.parentElement;
+          if (!btn || btn.getAttribute('data-dsh-alert-nav') === '1') continue;
+
+          // 第一个子节点应该就是宿主画的图标（svg）
+          var first = btn.firstElementChild;
+          if (!first || first.tagName.toLowerCase() !== 'svg') continue;
+          if (first.getAttribute('data-dsh-alert-icon') === '1') {
+            btn.setAttribute('data-dsh-alert-nav', '1');
+            continue;
+          }
+
+          try {
+            btn.replaceChild(buildSvg(), first);
+            btn.setAttribute('data-dsh-alert-nav', '1');
+          } catch {
+            /* 宿主结构变了就算了，不影响功能 */
+          }
+        }
+      }
+
+      // 设置面板是按需挂载的，所以要持续看着；节流到最多 1.5s 一次
+      function schedule() {
+        if (stopped) return;
+        if (timer !== null) return;
+        timer = setTimeout(function () {
+          timer = null;
+          decorate();
+        }, 150);
+      }
+
+      var observer = null;
+      try {
+        observer = new MutationObserver(schedule);
+        observer.observe(document.body, { childList: true, subtree: true });
+      } catch {
+        observer = null;
+      }
+
+      // 观察器不可用时退回轮询
+      var poll = null;
+      if (!observer) {
+        poll = setInterval(decorate, 1500);
+      }
+      decorate();
+
+      return function () {
+        stopped = true;
+        if (timer !== null) clearTimeout(timer);
+        if (poll !== null) clearInterval(poll);
+        try {
+          observer?.disconnect();
+        } catch {
+          /* 忽略 */
+        }
+      };
     }
 
     exports.name = name;

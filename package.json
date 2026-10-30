@@ -1,6 +1,6 @@
 {
   "name": "dsh-alert",
-  "version": "1.7.3",
+  "version": "1.8.0",
   "description": "DeepSeek Harness 插件：AI 干活时人不在电脑前，把「跑完了 / 出错了 / 等你审批」推到手机。多通道可自选，纯提醒，不强依赖其它插件。",
   "type": "module",
   "license": "MIT",
