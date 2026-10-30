@@ -79,83 +79,65 @@ test('ctx 是 null 或 undefined 时也不抛错', () => {
 
 // ── dsh-cost-meter ──
 
-test('costMeter 在时 detectIntegrations 认出它', () => {
+test('costMeter 可用性要通过 opts 传进来（不能直接读 ctx）', () => {
+  // 服务挂在 ctx 上但没通过 opts 传 → 应报 false，说明没走「读 ctx」那条会抛的路
   const ctx = strictCtx({ costMeter: { getState: () => ({}) } });
-  assert.equal(detectIntegrations(ctx).costMeter, true);
+  assert.equal(detectIntegrations(ctx).costMeter, false);
+  assert.equal(detectIntegrations(ctx, { costAvailable: true }).costMeter, true);
 });
 
 test('costMeter.getState 抛错时 readCost 返回 null，不传染', async () => {
-  const ctx = strictCtx({
-    costMeter: {
-      getState: () => {
-        throw new Error('boom');
-      },
+  const svc = {
+    getState: () => {
+      throw new Error('boom');
     },
-  });
-  assert.equal(await readCost(ctx), null);
+  };
+  assert.equal(await readCost(svc), null);
 });
 
 test('costMeter 返回 undefined 时 readCost 返回 null', async () => {
-  const ctx = strictCtx({ costMeter: { getState: () => undefined } });
-  assert.equal(await readCost(ctx), null);
+  assert.equal(await readCost({ getState: () => undefined }), null);
 });
 
 test('costMeter 返回非对象时 readCost 返回 null', async () => {
-  const ctx = strictCtx({ costMeter: { getState: () => 42 } });
-  assert.equal(await readCost(ctx), null);
+  assert.equal(await readCost({ getState: () => 42 }), null);
 });
 
 test('没有 getState 方法时 readCost 返回 null', async () => {
-  const ctx = strictCtx({ costMeter: {} });
-  assert.equal(await readCost(ctx), null);
+  assert.equal(await readCost({}), null);
 });
 
 test('读到 today.cost 时返回金额与币种', async () => {
-  const ctx = strictCtx({
-    costMeter: { getState: () => ({ today: { cost: 0.32 } }) },
-  });
-  assert.deepEqual(await readCost(ctx), { amount: 0.32, currency: 'CNY', balance: undefined });
+  const svc = { getState: () => ({ today: { cost: 0.32 } }) };
+  assert.deepEqual(await readCost(svc), { amount: 0.32, currency: 'CNY', balance: undefined });
 });
 
 test('兼容 today.totalCost 字段', async () => {
-  const ctx = strictCtx({
-    costMeter: { getState: () => ({ today: { totalCost: 1.5 } }) },
-  });
-  const cost = await readCost(ctx);
+  const cost = await readCost({ getState: () => ({ today: { totalCost: 1.5 } }) });
   assert.equal(cost.amount, 1.5);
 });
 
 test('兼容 state.todayCost 字段', async () => {
-  const ctx = strictCtx({
-    costMeter: { getState: () => ({ todayCost: 2.25 }) },
-  });
-  const cost = await readCost(ctx);
+  const cost = await readCost({ getState: () => ({ todayCost: 2.25 }) });
   assert.equal(cost.amount, 2.25);
 });
 
 test('兼容 state.current.cost 字段', async () => {
-  const ctx = strictCtx({
-    costMeter: { getState: () => ({ current: { cost: 0.07 } }) },
-  });
-  const cost = await readCost(ctx);
+  const cost = await readCost({ getState: () => ({ current: { cost: 0.07 } }) });
   assert.equal(cost.amount, 0.07);
 });
 
 test('带余额时一并取出', async () => {
-  const ctx = strictCtx({
-    costMeter: {
-      getState: () => ({ today: { cost: 0.5 }, balance: { remaining: 88.8 } }),
-    },
-  });
-  const cost = await readCost(ctx);
+  const svc = {
+    getState: () => ({ today: { cost: 0.5 }, balance: { remaining: 88.8 } }),
+  };
+  const cost = await readCost(svc);
   assert.equal(cost.balance, 88.8);
 });
 
 test('金额不是数字时返回 null（避免 NaN 写进提醒）', async () => {
-  const ctx = strictCtx({
-    costMeter: { getState: () => ({ today: { cost: '0.32' } }) },
-  });
-  assert.equal(await readCost(ctx), null);
+  const svc = { getState: () => ({ today: { cost: '0.32' } }) };
+  assert.equal(await readCost(svc), null);
 });
 
 // ── formatCost ──
@@ -233,15 +215,14 @@ test('entries 里缺 options 的条目不会炸', () => {
 
 // ── dsh-im ──
 
-test('dshIm 在时 detectIntegrations 认出它', () => {
+test('dshIm 可用性要通过 opts 传进来（不能直接读 ctx）', () => {
   const ctx = strictCtx({ dshIm: { send: () => {} } });
-  assert.equal(detectIntegrations(ctx).im, true);
+  assert.equal(detectIntegrations(ctx).im, false);
+  assert.equal(detectIntegrations(ctx, { imAvailable: true }).im, true);
 });
 
 test('全装齐时四项都是 true', () => {
   const ctx = strictCtx({
-    costMeter: { getState: () => ({}) },
-    dshIm: { send: () => {} },
     loader: {
       entries: () => [
         { options: { name: 'dsh-notify-windows' } },
@@ -249,7 +230,8 @@ test('全装齐时四项都是 true', () => {
       ],
     },
   });
-  const result = detectIntegrations(ctx);
+  // 服务类联动靠 inject 探测后传进来；loader 类直接读 ctx
+  const result = detectIntegrations(ctx, { costAvailable: true, imAvailable: true });
   assert.equal(result.costMeter, true);
   assert.equal(result.desktopNotify, true);
   assert.equal(result.claudeStyle, true);
