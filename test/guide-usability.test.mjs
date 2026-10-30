@@ -247,6 +247,126 @@ test('渲染代码支持字段级 help 说明', () => {
   assert.match(SRC, /aria-describedby/, 'help 应与输入框关联，读屏才念得到');
 });
 
+// ── 入口必须先引入再使用 ──
+
+test('提到「管理后台」这类入口时，必须说清怎么进', () => {
+  // 用户实际卡住的场景：企业微信第 2 步写「管理后台 → …」，
+  // 但从没说过管理后台是什么、怎么进，他手上只有手机 App。
+  const ENTRANCES = ['管理后台', '开放平台', '开发者后台', '控制台'];
+
+  const bad = [];
+  for (const g of mod.GUIDES) {
+    if (!g.steps?.length) continue;
+    for (const word of ENTRANCES) {
+      const firstIdx = g.steps.findIndex((s) =>
+        `${s.text} ${s.where || ''} ${s.look || ''}`.includes(word),
+      );
+      if (firstIdx === -1) continue;
+
+      const first = g.steps[firstIdx];
+      const blob = `${first.text} ${first.where || ''} ${first.look || ''}`;
+      // 必须出现「打开/浏览器/网址/登录」这类进入动作
+      if (!/浏览器|打开|网址|https?:|扫码登录|进入/.test(blob)) {
+        bad.push(`${g.id} 第 ${firstIdx + 1} 步首次提到「${word}」却没说怎么进：${first.text}`);
+      }
+    }
+  }
+  assert.deepEqual(bad, [], `这些入口没交代清楚：\n${bad.join('\n')}`);
+});
+
+test('企业微信必须说明「管理后台是网页，不是手机 App」', () => {
+  const g = byId['wecom-app'];
+  const all = JSON.stringify(g);
+  assert.match(all, /浏览器|网页/, '要说清是用浏览器打开');
+  assert.match(
+    all,
+    /不是.*App|App.*没有|手机.*没有/,
+    '用户手上只有手机 App，必须点明这不是 App 里的功能',
+  );
+});
+
+test('每一步的「在哪儿做」必须包含可操作线索，不能只写概念', () => {
+  const bad = [];
+  for (const g of mod.GUIDES) {
+    if (!g.steps?.length) continue;
+    g.steps.forEach((s, i) => {
+      const w = String(s.where || '');
+      if (!w) return;
+      const actionable = /→|打开|点|选择|复制|粘贴|扫|填|浏览器|进入|拉到|框|按钮|下拉/.test(w);
+      if (!actionable) bad.push(`${g.id} 第 ${i + 1} 步：${w}`);
+    });
+  }
+  assert.deepEqual(bad, [], `这些位置描述没有可操作线索：\n${bad.join('\n')}`);
+});
+
+test('「在哪儿做」里不该塞注意事项（那是 look 的活）', () => {
+  const bad = [];
+  for (const g of mod.GUIDES) {
+    if (!g.steps?.length) continue;
+    g.steps.forEach((s, i) => {
+      const w = String(s.where || '');
+      if (/注意|别把|不要|⚠️/.test(w)) {
+        bad.push(`${g.id} 第 ${i + 1} 步把提醒写进了位置：${w.slice(0, 40)}`);
+      }
+    });
+  }
+  assert.deepEqual(bad, [], `这些位置描述混进了注意事项：\n${bad.join('\n')}`);
+});
+
+test('面向用户的文案里不该出现 Markdown 标记（会原样显示成星号）', () => {
+  // 面板把这些字符串直接渲染成纯文本，**加粗** 会露出星号，看着像没写完
+  const bad = [];
+  for (const g of mod.GUIDES) {
+    const spots = [];
+    (g.steps || []).forEach((s, i) => {
+      if (/\*\*/.test(`${s.text}${s.where || ''}${s.look || ''}`)) spots.push(`步骤 ${i + 1}`);
+    });
+    for (const f of g.fields || []) {
+      if (/\*\*/.test(String(f.help || ''))) spots.push(`字段 ${f.key} 的 help`);
+    }
+    if (/\*\*/.test(String(g.warn || ''))) spots.push('warn');
+    if (/\*\*/.test(String(g.subtitle || ''))) spots.push('subtitle');
+    if (spots.length) bad.push(`${g.id}: ${spots.join('、')}`);
+  }
+  assert.deepEqual(bad, [], `这些文案里有 Markdown 星号：\n${bad.join('\n')}`);
+});
+
+test('注意事项走 note 数组，不靠正文里的「注意：」字样', () => {
+  // 用颜色 + 图标表达提醒，而不是在句子里塞纯文本前缀
+  const bad = [];
+  for (const g of mod.GUIDES) {
+    (g.steps || []).forEach((s, i) => {
+      const look = String(s.look || '');
+      const where = String(s.where || '');
+      if (/注意[：:]/.test(look) || /注意[：:]/.test(where)) {
+        bad.push(`${g.id} 第 ${i + 1} 步：正文里有「注意：」，应改用 note 数组`);
+      }
+    });
+  }
+  assert.deepEqual(bad, [], `这些步骤该用 note：\n${bad.join('\n')}`);
+});
+
+test('渲染层会把 note 渲染成警示块（带图标和警示色）', () => {
+  assert.match(SRC, /warningsFor/, '应有 warningsFor 提取注意事项');
+  assert.match(SRC, /S\.stepWarn/, '应有警示块样式');
+  assert.match(SRC, /stepWarnIcon/, '警示块应带图标');
+  // 样式里必须用 warn 色系，不是普通文字色
+  assert.match(SRC, /stepWarn[\s\S]{0,400}?p\.warnSoft/, '警示块应用 warnSoft 背景');
+});
+
+test('已有 note 的步骤确实非空且是字符串数组', () => {
+  for (const g of mod.GUIDES) {
+    (g.steps || []).forEach((s, i) => {
+      if (s.note === undefined) return;
+      assert.ok(Array.isArray(s.note), `${g.id} 第 ${i + 1} 步的 note 应是数组`);
+      for (const n of s.note) {
+        assert.equal(typeof n, 'string', `${g.id} 第 ${i + 1} 步 note 里有非字符串`);
+        assert.ok(n.trim().length > 0, `${g.id} 第 ${i + 1} 步 note 里有空字符串`);
+      }
+    });
+  }
+});
+
 // ── 出错排查 ──
 
 test('失败时给出可照做的排查建议，而不是只甩报错', () => {

@@ -327,7 +327,7 @@ test('没有已启用通道时，默认选中 ntfy（免费且不限条数）', 
   const ctx = setup({ emptyChannels: true });
   const text = collectText(await renderSettled(ctx)).join(' ');
 
-  assert.match(text, /手机装 ntfy/, '应默认显示 ntfy 的引导步骤');
+  assert.match(text, /装 ntfy/, '应默认显示 ntfy 的引导步骤');
   assert.match(text, /主题名/, '应有主题名字段');
   assert.match(text, /复制/, 'ntfy 要提供一键复制主题名');
 });
@@ -422,7 +422,7 @@ test('已有启用通道时，默认选中它', async () => {
   const ctx = setup(); // 默认 mock 里 ntfy 是启用的
   const text = collectText(await renderSettled(ctx)).join(' ');
 
-  assert.match(text, /手机装 ntfy/, '应沿用已启用通道的引导');
+  assert.match(text, /装 ntfy/, '应沿用已启用通道的引导');
 });
 
 test('选中有限额的通道时显示警告', async () => {

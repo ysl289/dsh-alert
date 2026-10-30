@@ -321,11 +321,11 @@ window.__ModuleLoader__.load({
      *   text       这一动作做什么（动词开头，一句话）
      *   where      在哪个页面/哪个位置（用户要能照着找到）
      *   look       看到什么就算找对了（给锚点，避免找错地方）
+     *   note       注意事项，**数组**。渲染成警示色块，不进正文。
+     *              —— 别在 look 里写「注意：xxx」。那是纯文本装饰，
+     *                 应该用颜色 + 图标表达，由渲染层负责。
      *   copyField  这一步要复制的值来自哪个配置字段；给了就把值显示出来 + 复制按钮
      *   link       能直接跳过去的地址
-     *
-     * 上一版最大的问题是只写"复制主题名"，但没说在哪个页面、看到什么、
-     * 值长什么样 —— 用户只能猜。
      */
     var GUIDES = [
       {
@@ -334,25 +334,25 @@ window.__ModuleLoader__.load({
         ease: 1, badge: '推荐',
         steps: [
           {
-            text: '手机装 ntfy',
-            where: 'App Store / Google Play / F-Droid，搜 ntfy',
-            look: '图标是白底黑色小喇叭，开发者是 Philipp Heckel',
+            text: '在手机上装 ntfy',
+            where: '打开手机的应用商店（iPhone 是 App Store，安卓是 Google Play 或「应用市场」），搜索 ntfy 点安装',
+            look: '图标是白底黑色小喇叭。认不准就看开发者名：Philipp Heckel',
           },
           {
-            text: '点下面的「复制主题名」',
-            where: '就在这一行右边的按钮',
-            look: '复制到的是一串 dsh-xxxx 的短名字',
+            text: '复制下面这串主题名',
+            where: '点这一行右边那个带复制图标的小按钮',
+            look: '复制到的是一串 dsh-xxxx（4 位字母数字）',
             copyField: 'topic',
           },
           {
             text: '在 ntfy App 里订阅这个主题',
-            where: '打开 ntfy → 右上角「+」→「Subscribe to topic」→ 长按输入框粘贴 → 点 SUBSCRIBE',
-            look: '订阅成功后，App 首页列表里会多出一行 dsh-xxxx',
+            where: '打开 ntfy → 点右上角「+」→ 选「Subscribe to topic」→ 在输入框里长按选「粘贴」→ 点 SUBSCRIBE',
+            look: '订阅成功后，App 首页的列表里会多出一行 dsh-xxxx',
           },
           {
             text: '回到这里点「发送测试」',
-            where: '第 2 步下面的蓝色大按钮',
-            look: '手机响一声 = 成功。没响就看下方红字，会告诉你具体原因',
+            where: '就是下面那个蓝色的大按钮，写着「发送测试」',
+            look: '手机响一声 = 成功。没响就看下方的红字，它会告诉你具体是哪一步不对',
           },
         ],
         fields: [
@@ -373,29 +373,42 @@ window.__ModuleLoader__.load({
         steps: [
           {
             text: '注册企业微信',
-            where: '电脑浏览器打开，用微信扫码注册',
-            look: '个人身份就能注册，不用营业执照',
+            where: '电脑浏览器打开这个网址，用微信扫码',
+            look: '个人身份就能注册，不用营业执照。注册完会给你一个企业名字',
             link: 'https://work.weixin.qq.com/', linkText: '打开企业微信',
           },
           {
+            text: '进「管理后台」（后面几步都在这里做）',
+            where: '浏览器打开 work.weixin.qq.com → 右上角点「管理后台」→ 微信扫码登录',
+            look: '进去后是一个网页界面，左侧有一列菜单：「我的企业」「通讯录」「应用管理」「管理工具」等。',
+            note: ['这不是手机上的企业微信 App —— App 里没有这些菜单，必须用电脑浏览器进这个网页'],
+            link: 'https://work.weixin.qq.com/wework_admin/frame', linkText: '直接打开管理后台',
+          },
+          {
             text: '建一个自建应用',
-            where: '管理后台 →「应用管理」→ 点「创建应用」→ 上传个图标随便填个名字',
-            look: '建好后页面会显示 AgentId（一串数字）和 Secret（点「查看」才显示）',
+            where: '管理后台左侧「应用管理」→ 找到「应用」一栏 → 点「自建」旁边的「创建应用」',
+            look: '上传个图标、随便填个名字（比如「DSH 提醒」）。建好后进入应用详情页，能看到 AgentId（一串数字）',
           },
           {
-            text: '拿企业 ID',
-            where: '管理后台 →「我的企业」→「企业信息」→ 拉到最底部',
-            look: '一串 ww 开头的字符，这就是 CorpID',
+            text: '拿应用 Secret',
+            where: '就在刚建的应用详情页里，AgentId 下方有「Secret」→ 点「查看」→ 会发一条消息到你手机企业微信，点开就能看到 Secret',
+            look: '一串较长的随机字符。只显示这一次，先复制下来',
           },
           {
-            text: '扫码关注「微信插件」',
-            where: '管理后台 →「我的企业」→「微信插件」→ 用你自己的微信扫二维码',
-            look: '这一步不做，消息只会留在企业微信 App 里，进不了你的个人微信',
+            text: '拿企业 ID（CorpID）',
+            where: '管理后台左侧「我的企业」→「企业信息」→ 页面拉到最底部',
+            look: '一串 ww 开头的字符，标注为「企业ID」',
+          },
+          {
+            text: '扫码关注「微信插件」（不做过不了）',
+            where: '管理后台左侧「我的企业」→「微信插件」→ 页面中间有个二维码 → 用你自己微信扫',
+            look: '扫完你的微信里会多出一个企业号。',
+            note: ['不做这步，消息只会停在企业微信 App 里，进不了你的个人微信'],
           },
           {
             text: '三个值填到下面，点发送测试',
-            where: 'CorpID / Secret / AgentId 分别对应下面三个框',
-            look: '如果报 81013，说明「发给谁」填的账号在企业里不存在，改成 @all 再试',
+            where: 'CorpID / Secret / AgentId 分别对应下面三个输入框',
+            look: '微信收到一条提醒 = 成功。\n如果报 81013：把「发给谁」改成 @all 再试',
           },
         ],
         fields: [
@@ -412,19 +425,20 @@ window.__ModuleLoader__.load({
         steps: [
           {
             text: 'App Store 装 Bark',
-            where: '搜索 Bark，作者是 Finb',
-            look: '图标是白底黑色铃铛',
+            where: '打开 iPhone 上的 App Store，搜索 Bark 后点安装',
+            look: '图标是白底黑色小铃铛。认不准就看作者：Finb',
             link: 'https://apps.apple.com/app/bark-customed-notifications/id1403753865', linkText: '打开 App Store',
           },
           {
             text: '在 App 里找到设备 Key',
-            where: '打开 Bark → 底部「服务器」标签页 → 点你正在用的那条服务器',
-            look: '详情页里有一行完整地址 https://api.day.app/AbCdEf123456，斜杠后面那一段就是 Key',
+            where: '打开 Bark → 点底部「服务器」标签页 → 在列表里点你正在用的那条服务器',
+            look: '详情页里会显示一行完整地址，形如 https://api.day.app/AbCdEf123456。\n斜杠后面那一段（AbCdEf123456）才是 Key',
           },
           {
-            text: '粘到下面的「设备 Key」框，点发送测试',
-            where: '只填斜杠后面那段，不要连 https:// 一起粘',
-            look: '手机响 = 成功',
+            text: '把 Key 填到下面，点「发送测试」',
+            where: '填进下面的「设备 Key」框，然后点页面下方蓝色「发送测试」按钮',
+            look: '手机响 = 成功。',
+            note: ['只填斜杠后面那段，不要把 https:// 或 api.day.app 一起粘进去'],
           },
         ],
         fields: [
@@ -440,29 +454,33 @@ window.__ModuleLoader__.load({
         steps: [
           {
             text: '注册 QQ 开放平台并个人认证',
-            where: '浏览器打开，用 QQ 扫码登录，然后做个人实名认证',
-            look: '认证通过后就能创建机器人（个人上限 5 个）',
+            where: '电脑浏览器打开这个网址，用手机 QQ 扫码登录，然后按提示做个人实名认证',
+            look: '认证通过后才能创建机器人（个人上限 5 个）',
             link: 'https://q.qq.com/', linkText: '打开 QQ 开放平台',
           },
           {
             text: '创建机器人，拿 AppID 和 AppSecret',
-            where: '机器人管理 → 创建 → 建好后在「开发设置」页',
-            look: 'AppID 是纯数字；AppSecret 点「重置」后才显示，只显示一次',
+            where: '进开放平台后，左侧「机器人」→ 点「创建」→ 填资料 → 建好后进这个机器人的「开发设置」页',
+            look: 'AppID 是纯数字。AppSecret 要点「重置」才显示，且只显示一次，先复制下来',
           },
           {
             text: '把你自己加进「开发体验用户」',
-            where: '机器人的「开发设置」→「开发体验用户」→ 添加你自己的 QQ 号',
+            where: '还是在机器人的「开发设置」页，往下找到「开发体验用户」→ 点添加 → 填你自己的 QQ 号',
             look: '不加这一步，机器人给你发消息会直接失败',
           },
           {
-            text: '在 QQ 里给机器人发一句话',
-            where: '手机 QQ 搜索你的机器人名字 → 发任意消息',
-            look: '发完之后，开放平台的「消息列表」或你配的回调里能看到一条带 openid 的记录',
+            text: '在手机 QQ 里给机器人发一句话',
+            where: '打开手机 QQ → 搜索你刚创建的机器人名字 → 进聊天 → 随便发一句「你好」',
+            look: '消息发出去后，在开放平台的「开发设置 → 消息推送」或沙箱消息列表里，能看到一条带 openid 字段的记录',
           },
           {
-            text: '把 openid 填到下面，点发送测试',
-            where: 'openid 是一长串字母数字，不是你的 QQ 号',
-            look: '如果报 40034105，是你在 QQ 客户端关掉了「允许机器人主动发消息」，去机器人资料页打开',
+            text: '把 openid 填到下面，点「发送测试」',
+            where: '找到记录里的 openid 值，复制进下面的「你的 OpenID」框',
+            look: 'QQ 收到消息 = 成功。',
+            note: [
+              'openid 是一长串字母数字，不是你的 QQ 号',
+              '报 40034105 → 你在 QQ 里关掉了「允许机器人主动发消息」，去机器人资料页打开',
+            ],
           },
         ],
         fields: [
@@ -483,19 +501,20 @@ window.__ModuleLoader__.load({
         steps: [
           {
             text: '微信扫码登录 Server酱',
-            where: '浏览器打开，用微信扫页面上的二维码',
-            look: '登录后会跳到「SendKey」页面',
+            where: '电脑浏览器打开这个网址，用微信扫页面中间的二维码',
+            look: '登录成功后，页面顶部会显示你的 SendKey',
             link: 'https://sct.ftqq.com/', linkText: '打开 Server酱',
           },
           {
             text: '复制 SendKey',
-            where: '页面上「SendKey」那一栏，点复制按钮',
+            where: '页面上标着「SendKey」的那一栏，点右边的复制按钮',
             look: 'SCT 开头的一长串，例如 SCT123456Txxxxxxxxxxxx',
           },
           {
-            text: '粘到下面，点发送测试',
-            where: '注意别把「SCT」后面的空格也粘进去',
-            look: '微信会收到一条「Server酱」服务号消息',
+            text: '粘到下面，点「发送测试」',
+            where: '填进下面的「SendKey」输入框，再点页面下方蓝色「发送测试」按钮',
+            look: '微信会收到一条「Server酱」服务号消息。',
+            note: ['别把 SCT 后面的空格也粘进去'],
           },
         ],
         fields: [
@@ -508,24 +527,26 @@ window.__ModuleLoader__.load({
         ease: 6,
         steps: [
           {
-            text: '先在下面选你用的是哪个平台',
-            where: '「平台」下拉框，选钉钉 / 飞书 / 企微群',
-            look: '选完下面会自动带出该平台要求的消息格式，不用自己写',
+            text: '先在下面的「平台」下拉框里选你用的是哪个',
+            where: '页面下方表单的第一个下拉框，标着「平台」',
+            look: '选「钉钉群机器人」/「飞书群机器人」/「企业微信群机器人」。\n选完会自动套用该平台认的消息格式，你不用自己写 JSON',
           },
           {
-            text: '在群里加一个自定义机器人',
-            where: '钉钉：群设置 → 智能群助手 → 添加机器人 → 自定义\n飞书：群设置 → 群机器人 → 添加机器人 → 自定义机器人\n企微：群设置 → 群机器人 → 添加 → 新建',
-            look: '创建完会给一个 https 开头的 Webhook 地址',
+            text: '在群里添加一个自定义机器人，拿 Webhook 地址',
+            where: '钉钉群：群设置（右上角···）→「智能群助手」→「添加机器人」→「自定义」\n飞书群：群设置 →「群机器人」→「添加机器人」→「自定义机器人」\n企微群：群设置 →「群机器人」→「添加」→「新建」',
+            look: '创建完最后一步会给你一条 https 开头的地址，这就是 Webhook',
           },
           {
-            text: '如果平台要求「安全设置」，选「自定义关键词」并填 DSH',
-            where: '创建机器人时的安全设置那一步',
-            look: '钉钉和飞书都强制要求。关键词不匹配会报错发不出去。',
+            text: '安全设置选「自定义关键词」，关键词填 DSH',
+            where: '就在上一步创建机器人的流程里，会有一页让你选安全方式 → 点「自定义关键词」→ 在输入框里填 DSH',
+            look: '钉钉和飞书都强制要求配一种安全方式，选关键词最省事。',
+            note: ['关键词必须出现在消息里，否则对方直接拒收 —— 填 DSH 就行，本插件发的每条消息标题都带 DSH'],
           },
           {
-            text: '把地址粘到下面，点发送测试',
-            where: '整条 https 地址全粘进去，包括后面的 access_token',
-            look: '群里出现一条测试消息',
+            text: '把 Webhook 地址粘到下面，点「发送测试」',
+            where: '整条地址填进下面标着「Webhook 地址」的输入框，再点页面下方蓝色「发送测试」按钮',
+            look: '群里出现一条测试消息 = 成功。',
+            note: ['整条地址都要，包括 ? 后面的 access_token 部分'],
           },
         ],
         fields: [
@@ -547,17 +568,17 @@ window.__ModuleLoader__.load({
         steps: [
           {
             text: '填你服务的接收地址',
-            where: '下面的 URL 框',
+            where: '下面标着「URL」的输入框',
             look: '必须是完整地址，例如 https://your-server.com/notify',
           },
           {
             text: '确认请求体格式',
-            where: '「请求体」框，默认已经填好 {"title":"...","body":"..."}',
-            look: '{{title}} {{body}} {{url}} 会被替换成真实内容。你的服务按这个 JSON 解析就行。',
+            where: '标着「请求体」的那个输入框（默认已填好 {"title":"...","body":"..."}）',
+            look: '{{title}} {{body}} {{url}} 会被替换成真实内容。你的服务照这个 JSON 解析就行。',
           },
           {
-            text: '点发送测试',
-            where: '下面按钮',
+            text: '点「发送测试」',
+            where: '页面下方那个蓝色的大按钮',
             look: '你的服务收到请求、返回 2xx 就算成功',
           },
         ],
@@ -587,6 +608,33 @@ window.__ModuleLoader__.load({
       { key: 'blocked', label: '任务受阻', icon: 'ban' },
       { key: 'goal', label: '目标完成', icon: 'target' },
     ];
+
+    /**
+     * 取一步里的注意事项。
+     *
+     * 兼容两种写法：
+     *   note: ['要小心 A', '要小心 B']    ← 推荐
+     *   look: '正文\n注意：要小心 A'      ← 老写法，自动拆出来
+     *
+     * 这样即使以后有人又把注意事项写回正文，也会被正确渲染成警示块，
+     * 而不是在界面上露出「注意：」这种纯文本装饰。
+     */
+    function warningsFor(step) {
+      var out = [];
+      if (Array.isArray(step.note)) {
+        for (var i = 0; i < step.note.length; i += 1) {
+          var s = String(step.note[i] || '').trim();
+          if (s) out.push(s);
+        }
+      }
+      // 从 look 里捡漏：万一有人把注意事项写回正文
+      var lines = String(step.look || '').split('\n');
+      for (var j = 1; j < lines.length; j += 1) {
+        var m = /^\s*注意[：:]\s*(.+)$/.exec(lines[j]);
+        if (m) out.push(m[1].trim());
+      }
+      return out;
+    }
     //#endregion
 
     //#region 样式生成
@@ -717,6 +765,21 @@ window.__ModuleLoader__.load({
           paddingLeft: SPACE[2], marginTop: 2,
         },
         stepLookText: { flex: 1, minWidth: 0, whiteSpace: 'pre-wrap' },
+
+        // 注意事项：用警示底色 + 图标，不靠正文里的「注意：」字样
+        stepWarn: {
+          display: 'flex', gap: SPACE[2], alignItems: 'flex-start',
+          marginTop: SPACE[1], padding: SPACE[2] + 'px ' + SPACE[3] + 'px',
+          borderRadius: p.radiusSm,
+          background: p.warnSoft,
+          border: '1px solid ' + p.warn,
+        },
+        stepWarnIcon: { color: p.warn, flex: 'none', marginTop: 1 },
+        stepWarnBody: { display: 'flex', flexDirection: 'column', gap: SPACE[1], flex: 1, minWidth: 0 },
+        stepWarnLine: {
+          fontSize: TYPE.xs, lineHeight: LEADING.normal,
+          color: p.warn, fontWeight: p.fontWeightMedium, whiteSpace: 'pre-wrap',
+        },
 
         // 要复制的值：明文 + 复制按钮
         copyRow: {
@@ -1635,7 +1698,22 @@ window.__ModuleLoader__.load({
                             'span',
                             { style: S.stepLook },
                             makeIcon('info', { size: 13 }),
-                            h('span', { style: S.stepLookText }, step.look),
+                            h('span', { style: S.stepLookText }, String(step.look).split('\n')[0]),
+                          )
+                        : null,
+                      // 需要提醒的地方单独用警示色块，不靠在正文里写「注意：」
+                      warningsFor(step).length
+                        ? h(
+                            'span',
+                            { style: S.stepWarn },
+                            h('span', { style: S.stepWarnIcon }, makeIcon('alert', { size: 13 })),
+                            h(
+                              'span',
+                              { style: S.stepWarnBody },
+                              warningsFor(step).map(function (w, wi) {
+                                return h('span', { key: wi, style: S.stepWarnLine }, w);
+                              }),
+                            ),
                           )
                         : null,
                       // 要复制的值必须明文显示出来，不能只给个「复制」按钮
