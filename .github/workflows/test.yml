@@ -27,9 +27,12 @@ jobs:
           node-version: ${{ matrix.node }}
 
       - name: 跑测试
+        # 用 scripts/test.mjs 而不是 `node --test "test/*.test.mjs"`：
+        # 后者在 Node 20 及更早会把引号里的通配符当字面路径，直接报
+        # "Could not find test/*.test.mjs"。脚本自己列文件，跨版本跨 OS 一致。
         # 真实 Cordis 验证需要宿主自带的副本（不在仓库里），
         # 没设 CORDIS_ENTRY 时那两项会自动跳过。
-        run: node --test "test/*.test.mjs"
+        run: node scripts/test.mjs
 
       - name: 检查语法
         run: |

@@ -37,7 +37,7 @@
     "node": ">=18"
   },
   "scripts": {
-    "test": "node --test \"test/*.test.mjs\"",
+    "test": "node scripts/test.mjs",
     "test:e2e": "node test/e2e.test.mjs",
     "mock": "node test/mock-server.mjs",
     "send": "node test/send-test.mjs"
