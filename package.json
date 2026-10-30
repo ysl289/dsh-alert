@@ -1,0 +1,61 @@
+{
+  "name": "dsh-alert",
+  "version": "1.6.0",
+  "description": "DeepSeek Harness 插件：AI 干活时人不在电脑前，把「跑完了 / 出错了 / 等你审批」推到手机。多通道可自选，纯提醒，不强依赖其它插件。",
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "cordis",
+    "notification",
+    "push",
+    "ntfy",
+    "wecom",
+    "bark",
+    "mobile"
+  ],
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./client/client.js",
+    "./package.json": "./package.json",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "lib",
+    "client",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test \"test/*.test.mjs\"",
+    "test:e2e": "node test/e2e.test.mjs",
+    "mock": "node test/mock-server.mjs",
+    "send": "node test/send-test.mjs"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/cordis": {
+      "optional": true
+    }
+  }
+}

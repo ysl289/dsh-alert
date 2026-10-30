@@ -1,0 +1,10 @@
+# dsh-alert bundle patch。
+#
+# 这里只声明插件挂载行；真正的推送配置在「设置 → 手机提醒」里改，
+# 改了即时生效，不用动这个文件。
+#
+# 装法：dsh plugin --profile <name> add <路径或 npm 名>
+# 装完重启 DSH（一次性启动的 profile 下次启动才生效）。
+- insert:
+    - id: dsh-alert
+      name: dsh-alert

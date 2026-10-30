@@ -1,0 +1,36 @@
+# 依赖与构建产物
+node_modules/
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# 本地环境
+.env
+.env.local
+*.local
+
+# 用户真实配置（含密钥，绝不入库）
+settings.json
+*.settings.json
+cordis.patch.local.yml
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*~
+
+# 日志与临时文件
+*.log
+npm-debug.log*
+tmp/
+temp/
+.cache/
+
+# 测试产物
+coverage/
+*.tap
+test-results/
