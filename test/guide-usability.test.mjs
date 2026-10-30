@@ -406,6 +406,85 @@ test('60020 的排查建议要给出「换 ntfy」这条活路', () => {
   assert.match(block, /动态|家用|家庭/, '要说明家用宽带的困难');
 });
 
+// ── 数据质量：别把 null 当字符串写进界面 ──
+
+test("badge 不能是字符串 'null'（会直接显示成 null）", () => {
+  for (const g of mod.GUIDES) {
+    assert.notEqual(
+      g.badge,
+      'null',
+      `${g.id} 的 badge 是字符串 'null'，界面上会显示字面 null`,
+    );
+    assert.notEqual(g.badge, 'undefined', `${g.id} 的 badge 是字符串 'undefined'`);
+  }
+});
+
+test('badge 要么没有，要么是非空短标签', () => {
+  for (const g of mod.GUIDES) {
+    if (g.badge === undefined || g.badge === null) continue;
+    assert.equal(typeof g.badge, 'string', `${g.id}.badge 应是字符串`);
+    assert.ok(g.badge.trim().length > 0, `${g.id}.badge 是空字符串`);
+    assert.ok(g.badge.length <= 6, `${g.id}.badge 太长（${g.badge}），卡片上放不下`);
+  }
+});
+
+test('卡片标题和副标题不能是 null / undefined 字面量', () => {
+  for (const g of mod.GUIDES) {
+    for (const field of ['title', 'subtitle']) {
+      const v = g[field];
+      assert.ok(typeof v === 'string' && v.trim().length > 0, `${g.id}.${field} 缺失`);
+      assert.notEqual(v, 'null', `${g.id}.${field} 是字符串 null`);
+      assert.notEqual(v, 'undefined', `${g.id}.${field} 是字符串 undefined`);
+    }
+  }
+});
+
+test('每个通道的 ease 是正整数且不重复', () => {
+  const seen = new Map();
+  for (const g of mod.GUIDES) {
+    assert.equal(typeof g.ease, 'number', `${g.id}.ease 应是数字`);
+    assert.ok(Number.isInteger(g.ease) && g.ease > 0, `${g.id}.ease 应是正整数`);
+    assert.ok(!seen.has(g.ease), `ease ${g.ease} 被 ${seen.get(g.ease)} 和 ${g.id} 重复使用`);
+    seen.set(g.ease, g.id);
+  }
+});
+
+// ── 事实核对 ──
+
+/** IM 面板整段（含之前的来源注释）。 */
+function imPanelSrc() {
+  const start = SRC.indexOf('//#region IM 面板');
+  const end = SRC.indexOf('//#region 主面板');
+  assert.ok(start > 0 && end > start, '应能找到 IM 面板区块');
+  return SRC.slice(start, end);
+}
+
+test('IM 引导必须指向真实入口「IM机器人」而不是模糊说法', () => {
+  const im = imPanelSrc();
+  assert.match(im, /IM机器人/, '要写真实菜单名「IM机器人」');
+  assert.ok(
+    !/在它的设置里扫码/.test(im),
+    '不能写模糊的「在它的设置里扫码」，要给出具体菜单路径',
+  );
+});
+
+test('IM 引导必须提到「齿轮」「新建目标」「Bot ID」这些真实控件', () => {
+  const im = imPanelSrc();
+  assert.match(im, /齿轮/, '要说明点卡片右上角齿轮');
+  assert.match(im, /新建目标/, '目标是在 dsh-im 里「新建目标」建的');
+  assert.match(im, /Bot ID/i, '要复制 Bot ID');
+});
+
+test('引导代码里要注明事实来源（文档或 README）', () => {
+  // IM 引导之前凭印象写，全错。现在要求代码里留下出处，方便日后核对。
+  // 注意：来源注释写在 function ImPanel 之前，所以从 region 标记开始截。
+  const start = SRC.indexOf('//#region IM 面板');
+  const end = SRC.indexOf('//#region 主面板');
+  assert.ok(start > 0 && end > start, '应能找到 IM 面板区块');
+  const im = SRC.slice(start, end);
+  assert.match(im, /README|PROACTIVE_DELIVERY|事实来源|文档/, 'IM 面板应注明依据的文档');
+});
+
 // ── 出错排查 ──
 
 test('失败时给出可照做的排查建议，而不是只甩报错', () => {

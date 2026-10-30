@@ -355,8 +355,13 @@ test('IM 面板：没装时显示安装引导', async () => {
 
   const text = collectText(tree).join(' ');
   assert.match(text, /@xmanrui\/dsh-im/, '应告诉用户装哪个插件');
-  assert.match(text, /装好后这一页会自动变成选择框/, '应说明装完会怎样');
-  assert.match(text, /微信|飞书|Telegram/, '应说明能收到哪些渠道');
+  assert.match(text, /IM机器人/, '应给出真实菜单名「IM机器人」');
+  // 新版把"装完会怎样"写在最后一段，措辞变了
+  assert.match(text, /自动变成选择框|不用重新填/, '应说明装完会怎样');
+  assert.match(text, /微信|飞书|QQ/, '应说明能接哪些渠道');
+  // 必须提到真实操作控件，不能只有模糊描述
+  assert.match(text, /齿轮/, '要说明点卡片右上角齿轮');
+  assert.match(text, /新建目标/, '要说明在 dsh-im 里新建目标');
 });
 
 test('IM 面板：装了但没机器人时给出提示', async () => {
@@ -372,7 +377,9 @@ test('IM 面板：装了但没机器人时给出提示', async () => {
   });
 
   const text = collectText(tree).join(' ');
-  assert.match(text, /还没接入任何机器人/);
+  assert.match(text, /还没有接入任何机器人|还没有接入/, '要说清现状');
+  assert.match(text, /添加机器人/, '要说明怎么加');
+  assert.match(text, /齿轮/, '要说明后续怎么配目标');
 });
 
 test('IM 面板：装了且有机器人时给选择框', async () => {
@@ -395,11 +402,13 @@ test('IM 面板：装了且有机器人时给选择框', async () => {
   });
 
   const selects = findAll(tree, (n) => n.type === 'select');
-  assert.ok(selects.length >= 1, '应该有机器人选择框');
+  assert.ok(selects.length >= 2, '应该有机器人和目标两个选择框');
   const text = collectText(tree).join(' ');
-  assert.match(text, /机器人/);
-  assert.match(text, /投递目标/);
+  assert.match(text, /选一个机器人/, '第 1 步应说明选机器人');
+  assert.match(text, /选发给谁/, '第 2 步应说明选目标（dsh-im 里叫「目标」）');
   assert.match(text, /发布提醒/, '应列出已保存的目标');
+  // 目标为空时要说清去哪配，而不是干等
+  assert.match(text, /新建目标|dsh-im/, '应指引去哪配目标');
 });
 
 test('装了 dsh-im 且有机器人时显示选择框', async () => {

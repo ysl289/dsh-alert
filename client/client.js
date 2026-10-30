@@ -423,7 +423,7 @@ window.__ModuleLoader__.load({
       {
         id: 'bark', title: 'Bark', icon: 'bell',
         subtitle: 'iPhone 专用，免费开源',
-        ease: 2, badge: 'null',
+        ease: 2,
         steps: [
           {
             text: 'App Store 装 Bark',
@@ -432,15 +432,20 @@ window.__ModuleLoader__.load({
             link: 'https://apps.apple.com/app/bark-customed-notifications/id1403753865', linkText: '打开 App Store',
           },
           {
-            text: '在 App 里找到设备 Key',
-            where: '打开 Bark → 点底部「服务器」标签页 → 在列表里点你正在用的那条服务器',
-            look: '详情页里会显示一行完整地址，形如 https://api.day.app/AbCdEf123456。\n斜杠后面那一段（AbCdEf123456）才是 Key',
+            // 不同版本的 Bark 界面不一样，所以教「怎么认」而不是背菜单名
+            text: '在 App 里找到你的设备地址',
+            where: '打开 Bark 看首页。如果首页没直接显示地址，点底部「服务器」标签页，再点你正在用的那条服务器',
+            look: '会看到一条 https://api.day.app/XXXXXXXX 形式的地址，XXXXXXXX 就是你的设备 Key',
+            note: [
+              '如果首页只显示二维码，长按或点它通常能看到完整地址',
+              '自建服务器的地址不是 api.day.app，而是你自己的域名，取法一样',
+            ],
           },
           {
             text: '把 Key 填到下面，点「发送测试」',
-            where: '填进下面的「设备 Key」框，然后点页面下方蓝色「发送测试」按钮',
-            look: '手机响 = 成功。',
-            note: ['只填斜杠后面那段，不要把 https:// 或 api.day.app 一起粘进去'],
+            where: '填进下面的「设备 Key」框；「服务器地址」保持默认即可（除非你自建）',
+            look: '手机响一声 = 成功。',
+            note: ['只填斜杠后面那一段。连 https:// 或 api.day.app 一起粘会报 failed to get device token'],
           },
         ],
         fields: [
@@ -452,7 +457,8 @@ window.__ModuleLoader__.load({
       {
         id: 'qqbot', title: 'QQ', icon: 'robot',
         subtitle: '官方机器人，免费',
-        ease: 7, badge: 'null',
+        ease: 7,
+        warn: '这条路最折腾：要个人实名认证、要拿到 openid，而 openid 不在后台界面上直接显示，得从消息事件里取。如果你没有现成的 QQ 机器人，建议先用 ntfy。',
         steps: [
           {
             text: '注册 QQ 开放平台并个人认证',
@@ -471,13 +477,22 @@ window.__ModuleLoader__.load({
             look: '不加这一步，机器人给你发消息会直接失败',
           },
           {
-            text: '在手机 QQ 里给机器人发一句话',
+            text: '让机器人收到你的一条消息（为了拿 openid）',
             where: '打开手机 QQ → 搜索你刚创建的机器人名字 → 进聊天 → 随便发一句「你好」',
-            look: '消息发出去后，在开放平台的「开发设置 → 消息推送」或沙箱消息列表里，能看到一条带 openid 字段的记录',
+            look: '这一步的目的不是测试，是让平台产生一条带 openid 的消息事件',
+          },
+          {
+            text: '去把 openid 找出来',
+            where: '去两个地方找：① 打开开放平台的「开发设置」，翻到消息/事件日志；② 如果你配过消息推送地址，打开你自己的接收端日志看',
+            look: '找一条 JSON，里面有 openid 字段（一长串字母数字）',
+            note: [
+              'openid 不在后台首页直接显示，这是这条路最卡人的地方。找不到就用下面的替代方案。',
+              '替代方案：去 DSH 设置 → IM机器人 接一个 QQ 机器人（@xmanrui/dsh-im 支持扫码接入），然后在那边建「目标」，比手抠 openid 简单得多。',
+            ],
           },
           {
             text: '把 openid 填到下面，点「发送测试」',
-            where: '找到记录里的 openid 值，复制进下面的「你的 OpenID」框',
+            where: '复制进下面的「你的 OpenID」框，再点页面下方蓝色「发送测试」',
             look: 'QQ 收到消息 = 成功。',
             note: [
               'openid 是一长串字母数字，不是你的 QQ 号',
@@ -498,35 +513,49 @@ window.__ModuleLoader__.load({
       {
         id: 'serverchan', title: 'Server酱', icon: 'mail',
         subtitle: '微信收，但免费版每天只有 5 条',
-        ease: 3, badge: 'null',
-        warn: '免费版每天只能发 5 条，任务一多就不够用。想长期用建议选上面的 ntfy 或企业微信。',
+        ease: 3,
+        warn: '免费版每天只能发 5 条，任务一多就不够用。想长期用建议选上面的 ntfy。',
         steps: [
           {
-            text: '微信扫码登录 Server酱',
-            where: '电脑浏览器打开这个网址，用微信扫页面中间的二维码',
-            look: '登录成功后，页面顶部会显示你的 SendKey',
-            link: 'https://sct.ftqq.com/', linkText: '打开 Server酱',
+            text: '先确认你用的是哪一代服务',
+            where: '先打开你手里的 key 看一眼开头：SCT 开头就继续用 sct.ftqq.com；没有 key 或 sctp 开头，就打开 sc3.ft07.com 注册（Server酱³）',
+            look: '两代 key 长得不一样：\n· SCT 开头 → 老版 Turbo\n· sctp 开头（中间带数字）→ 新版 Server酱³',
+            note: ['两代都能用，本插件会自动识别。不需要为了这个换服务。'],
           },
           {
-            text: '复制 SendKey',
-            where: '页面上标着「SendKey」的那一栏，点右边的复制按钮',
-            look: 'SCT 开头的一长串，例如 SCT123456Txxxxxxxxxxxx',
+            text: '微信扫码登录，进 SendKey 页面',
+            where: '新手：浏览器打开 sc3.ft07.com → 微信扫码登录 → 进「SendKey」页\n老用户：打开 sct.ftqq.com → 微信扫码登录',
+            look: '页面上会列出你的 SendKey，旁边有复制按钮',
+            link: 'https://sc3.ft07.com/sendkey', linkText: '打开 SendKey 页（新版）',
+          },
+          {
+            text: '复制完整 SendKey',
+            where: '点 SendKey 右边那个复制按钮，把整串都复制下来',
+            look: 'SCT 开头，或 sctp 开头（sctp 后面紧跟一串数字，再一个 t）',
+            note: [
+              'sctp 那串里的数字是有用的（它决定推送地址），不要手工截断或改写',
+              '不要带前后空格',
+            ],
           },
           {
             text: '粘到下面，点「发送测试」',
             where: '填进下面的「SendKey」输入框，再点页面下方蓝色「发送测试」按钮',
             look: '微信会收到一条「Server酱」服务号消息。',
-            note: ['别把 SCT 后面的空格也粘进去'],
+            note: ['如果报 522，多半是 sctp 那串没复制全 —— 回 SendKey 页重新复制一次'],
           },
         ],
         fields: [
-          { key: 'sendKey', label: 'SendKey', type: 'secret', placeholder: 'SCT 开头的一长串', required: true, help: 'sct.ftqq.com 登录后首页就有。如果以 sctp 开头说明是 Turbo 版，也能用。' },
+          {
+            key: 'sendKey', label: 'SendKey', type: 'secret',
+            placeholder: 'SCT... 或 sctp...', required: true,
+            help: 'SCT 开头是老版 Turbo（sct.ftqq.com）；sctp 开头是新版 Server酱³（sc3.ft07.com）。整串复制，别截断。',
+          },
         ],
       },
       {
         id: 'webhook', title: 'Webhook', icon: 'link',
         subtitle: '钉钉 / 飞书 / 企业微信群机器人',
-        ease: 4, badge: 'null',
+        ease: 4,
         steps: [
           {
             text: '先在下面的「平台」下拉框里选你用的是哪个',
@@ -566,7 +595,7 @@ window.__ModuleLoader__.load({
       {
         id: 'custom', title: '自定义', icon: 'sliders',
         subtitle: '接到你自己的服务',
-        ease: 6, badge: 'null',
+        ease: 6,
         steps: [
           {
             text: '填你服务的接收地址',
@@ -597,7 +626,7 @@ window.__ModuleLoader__.load({
       {
         id: 'im', title: 'IM 复用', icon: 'plug',
         subtitle: '装了 IM 插件就能直接用',
-        ease: 8, badge: 'null', requiresPlugin: true,
+        ease: 8, requiresPlugin: true,
         steps: [], fields: [],
       },
     ];
@@ -1261,23 +1290,57 @@ window.__ModuleLoader__.load({
 
 
     //#region IM 面板
+    /**
+     * IM 复用面板。
+     *
+     * 事实来源：@xmanrui/dsh-im 的 README.md 与 PROACTIVE_DELIVERY.md（v5.7.0）。
+     * 不要凭印象写 —— 之前这版写模糊的「去它的设置里扫码」「选投递目标」，
+     * 全是错的：真实入口是「设置 → IM机器人」，目标叫「目标」不叫「投递目标」，
+     * 而且要先用齿轮进设置复制 Bot ID。
+     */
     function ImPanel(props) {
       var S = props.S;
       var im = props.im || { installed: false, bots: [], targets: {} };
       var cfg = props.cfg || {};
 
+      // ── 没装：告诉他在哪装、装完会看到什么 ──
       if (!im.installed) {
         return h(
           'div',
-          { style: { display: 'flex', flexDirection: 'column', gap: SPACE[3] } },
-          h('p', { style: S.muted }, '这条不是必须的。但如果你已经装了 IM 插件，就能直接用微信 / 飞书 / Telegram 收提醒，不用再装 ntfy 之类的 App。'),
+          { style: { display: 'flex', flexDirection: 'column', gap: SPACE[4] } },
+          h(
+            'p',
+            { style: S.muted },
+            '这条路适合「已经在用 IM 机器人」的人。它复用现成的机器人，不用再申请一套推送服务。',
+          ),
           h(
             'ul',
             { style: S.steps },
             [
-              ['装 IM 插件', '在 DSH 插件页装 @xmanrui/dsh-im，或在对话里说「装 dsh-im」'],
-              ['接入机器人', '在它的设置里扫码接入微信 / 飞书 / Telegram'],
-              ['回来选一下', '选机器人 + 投递目标，点发送测试'],
+              {
+                t: '装 dsh-im 插件',
+                w: 'DSH 设置 → 插件 → 搜索 @xmanrui/dsh-im → 安装，装完重启 DSH',
+                l: '装好后左侧边栏会多出一个「IM机器人」入口，或在 设置 → IM机器人 找到它',
+                note: ['包名要完整复制 @xmanrui/dsh-im，少一个字都装不上'],
+              },
+              {
+                t: '在 IM 插件里接一个机器人',
+                w: '打开「设置 → IM机器人」→ 点「添加机器人」→ 选渠道（飞书/微信/QQ 扫码，Telegram 填 Bot Token）',
+                l: '接入成功后，页面上会出现一张机器人卡片，卡片上有连接状态和渠道名',
+              },
+              {
+                t: '给机器人配一个「目标」',
+                w: '点机器人卡片右上角的齿轮 → 找到「调用标识」复制 Bot ID → 点「新建目标」→ 从已聊会话里选一个 → 点「测试」→ 成功后「保存目标」',
+                l: '目标列表里会出现一行，带一个 targetId（形如 tgt_7f3a91c8... 或你改的名字）',
+                note: [
+                  '候选列表只包含「已经和这个机器人聊过」的会话。没出现就先在对应 App 里给机器人发条消息，再点「刷新」',
+                ],
+              },
+              {
+                t: '回来这里选机器人 + 目标',
+                w: '这一页会自动变成两个下拉框，分别选刚才的机器人和目标',
+                l: '点下面的「发送测试」，手机上收到消息就配好了',
+              },
             ].map(function (row, i) {
               return h(
                 'li',
@@ -1286,65 +1349,221 @@ window.__ModuleLoader__.load({
                 h(
                   'span',
                   { style: S.stepBody },
-                  h('span', { style: S.stepTitle }, row[0]),
-                  h('span', { style: S.stepSub }, row[1]),
+                  h('span', { style: S.stepTitle }, row.t),
+                  row.w
+                    ? h(
+                        'span',
+                        { style: S.stepWhere },
+                        makeIcon('target', { size: 13 }),
+                        h('span', { style: S.stepWhereText }, row.w),
+                      )
+                    : null,
+                  row.l
+                    ? h(
+                        'span',
+                        { style: S.stepLook },
+                        makeIcon('info', { size: 13 }),
+                        h('span', { style: S.stepLookText }, row.l),
+                      )
+                    : null,
+                  row.note
+                    ? h(
+                        'span',
+                        { style: S.stepWarn },
+                        h('span', { style: S.stepWarnIcon }, makeIcon('alert', { size: 13 })),
+                        h(
+                          'span',
+                          { style: S.stepWarnBody },
+                          row.note.map(function (n, ni) {
+                            return h('span', { key: ni, style: S.stepWarnLine }, n);
+                          }),
+                        ),
+                      )
+                    : null,
                 ),
               );
             }),
           ),
-          h('p', { style: Object.assign({}, S.muted, { color: S.accent, fontWeight: S.rowLabel.fontWeight || 500 }) }, '装好后这一页会自动变成选择框，不用重新配置。'),
+          h(
+            'p',
+            { style: Object.assign({}, S.muted, { color: S.accent }) },
+            '装好并配好目标后，这一页会自动变成选择框，不用重新填任何东西。',
+          ),
         );
       }
 
+      // ── 装了但没机器人 ──
       var bots = im.bots || [];
       if (bots.length === 0) {
-        return h('p', { style: S.muted }, 'IM 插件装了，但还没接入任何机器人。先去它的设置里扫码接一个，再回来。');
+        return h(
+          'div',
+          { style: { display: 'flex', flexDirection: 'column', gap: SPACE[3] } },
+          h(
+            'p',
+            { style: S.muted },
+            'dsh-im 已经装了，但里面还没有接入任何机器人。先去做这三步：',
+          ),
+          h(
+            'ul',
+            { style: S.steps },
+            [
+              {
+                t: '打开 IM 机器人设置',
+                w: 'DSH 设置 →「IM机器人」（或点左侧边栏的 IM机器人 图标）',
+                l: '能看到「添加机器人」按钮和渠道列表',
+              },
+              {
+                t: '添加一个机器人',
+                w: '点「添加机器人」→ 选你要用的渠道 → 按提示扫码或填凭据',
+                l: '成功后出现机器人卡片，状态显示已连接',
+              },
+              {
+                t: '给机器人配目标',
+                w: '点卡片右上角齿轮 → 复制 Bot ID →「新建目标」→ 选已聊会话 → 测试 → 保存',
+                l: '目标列表出现一行带 targetId 的记录',
+                note: ['没看到会话可选项？先去那个 App 里给机器人发一条消息，再点刷新'],
+              },
+            ].map(function (row, i) {
+              return h(
+                'li',
+                { key: i, style: S.step },
+                h('span', { style: S.num }, String(i + 1)),
+                h(
+                  'span',
+                  { style: S.stepBody },
+                  h('span', { style: S.stepTitle }, row.t),
+                  row.w
+                    ? h(
+                        'span',
+                        { style: S.stepWhere },
+                        makeIcon('target', { size: 13 }),
+                        h('span', { style: S.stepWhereText }, row.w),
+                      )
+                    : null,
+                  row.l
+                    ? h(
+                        'span',
+                        { style: S.stepLook },
+                        makeIcon('info', { size: 13 }),
+                        h('span', { style: S.stepLookText }, row.l),
+                      )
+                    : null,
+                  row.note
+                    ? h(
+                        'span',
+                        { style: S.stepWarn },
+                        h('span', { style: S.stepWarnIcon }, makeIcon('alert', { size: 13 })),
+                        h(
+                          'span',
+                          { style: S.stepWarnBody },
+                          row.note.map(function (n, ni) {
+                            return h('span', { key: ni, style: S.stepWarnLine }, n);
+                          }),
+                        ),
+                      )
+                    : null,
+                ),
+              );
+            }),
+          ),
+        );
       }
 
+      // ── 有机器人：选机器人 + 目标 ──
       var targets = (im.targets || {})[cfg.botId] || [];
+      var selectedBot = null;
+      for (var bi = 0; bi < bots.length; bi += 1) {
+        if (bots[bi].botId === cfg.botId) { selectedBot = bots[bi]; break; }
+      }
 
       return h(
         'div',
-        { style: { display: 'flex', flexDirection: 'column', gap: SPACE[3] } },
+        { style: { display: 'flex', flexDirection: 'column', gap: SPACE[4] } },
+
+        // 选机器人
         h(
-          'label',
+          'div',
           { style: S.field },
-          h('span', { style: S.fieldLabel }, '机器人'),
+          h('span', { style: S.fieldLabel }, '第 1 步 · 选一个机器人'),
           h(
             'select',
             {
               style: S.select,
               value: cfg.botId || '',
+              'aria-label': '选择机器人',
               onChange: function (e) {
                 props.onChange('botId', e.target.value);
                 props.onChange('targetId', '');
               },
             },
-            h('option', { value: '' }, '选一个…'),
+            h('option', { value: '' }, '点这里选…'),
             bots.map(function (b) {
-              return h('option', { key: b.botId, value: b.botId }, b.channel + ' · ' + String(b.botId).slice(0, 12));
+              return h(
+                'option',
+                { key: b.botId, value: b.botId },
+                (b.channel || '未知渠道') + (b.name ? ' · ' + b.name : ''),
+              );
             }),
           ),
+          h(
+            'span',
+            { style: S.fieldHelp },
+            selectedBot
+              ? '已选 ' + (selectedBot.channel || '') + ' 的机器人'
+              : '列表来自你在 dsh-im 里已经接好的机器人。这里没有？先去 IM 机器人设置里添加。',
+          ),
         ),
+
+        // 选目标
         cfg.botId
           ? h(
-              'label',
+              'div',
               { style: S.field },
-              h('span', { style: S.fieldLabel }, '投递目标'),
+              h('span', { style: S.fieldLabel }, '第 2 步 · 选发给谁'),
               targets.length === 0
-                ? h('span', { style: S.muted }, '这个机器人还没有保存的投递目标，先去 IM 插件里加一个。')
+                ? h(
+                    'div',
+                    { style: S.stepWarn },
+                    h('span', { style: S.stepWarnIcon }, makeIcon('alert', { size: 13 })),
+                    h(
+                      'span',
+                      { style: S.stepWarnBody },
+                      h(
+                        'span',
+                        { style: S.stepWarnLine },
+                        '这个机器人还没有配置目标，现在发不出去。',
+                      ),
+                      h(
+                        'span',
+                        { style: S.stepWarnLine },
+                        '去 DSH 设置 → IM机器人 → 点这个机器人卡片右上角齿轮 →「新建目标」→ 选一个已聊会话 → 测试 → 保存。配好回来这一页会出现下拉框。',
+                      ),
+                    ),
+                  )
                 : h(
                     'select',
                     {
                       style: S.select,
                       value: cfg.targetId || '',
+                      'aria-label': '选择目标',
                       onChange: function (e) { props.onChange('targetId', e.target.value); },
                     },
-                    h('option', { value: '' }, '选一个…'),
+                    h('option', { value: '' }, '点这里选…'),
                     targets.map(function (t) {
-                      return h('option', { key: t.targetId, value: t.targetId }, t.name || t.targetId);
+                      return h(
+                        'option',
+                        { key: t.targetId, value: t.targetId },
+                        (t.name || t.targetId) + (t.kind === 'group' ? '（群）' : ''),
+                      );
                     }),
                   ),
+              h(
+                'span',
+                { style: S.fieldHelp },
+                targets.length === 0
+                  ? '目标是在 dsh-im 里配的，不是在这一页配。'
+                  : '这是你在 dsh-im 里保存的目标。看不到想要的？去那边「新建目标」。',
+              ),
             )
           : null,
       );
