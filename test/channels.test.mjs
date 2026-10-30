@@ -42,7 +42,8 @@ test('normalizeConfig 补默认值并跳过空值', () => {
   const cfg = normalizeConfig(ntfy, { topic: 'abc', server: '' });
   assert.equal(cfg.server, 'https://ntfy.sh', '空串应回落到默认值');
   assert.equal(cfg.topic, 'abc');
-  assert.equal(cfg.priority, 'default');
+  // 默认必须是 high：default(3) 只进通知栏不弹窗，等于白装
+  assert.equal(cfg.priority, 'high', '默认应是 high，才能弹窗置顶');
 });
 
 // ── ntfy ──

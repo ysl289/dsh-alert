@@ -1171,7 +1171,9 @@ window.__ModuleLoader__.load({
         ],
       },
       {
-        match: /errcode 81013|invalid user|invalidparty|invalidtag/i,
+        // 81013 是企业微信的码；「无效收件人：xxx」是我们自己 check() 输出的说法，
+        // 两者语义相同，放在一条规则里认。
+        match: /errcode 81013|invalid user|invalidparty|invalidtag|无效收件人/i,
         title: '「发给谁」填的账号不存在',
         fix: ['把「发给谁」改成 @all（发给全企业），个人用这是最简单的'],
       },
@@ -1183,8 +1185,11 @@ window.__ModuleLoader__.load({
 
       // ── Bark ──
       {
-        match: /Bark.*code 400|failed to get device|key/i,
-        title: 'Bark Key 不对',
+        // 注意：这里不能只写 "key" —— 会连带把 Server酱 的「[AUTH]错误的Key」
+        // 和钉钉的 "keywords not in content" 一起匹配进来，
+        // 用户看到「Bark Key 不对」就被指错了方向。用 Bark 特有的说法来认。
+        match: /failed to get device token|Bark code \d+|device token from database/i,
+        title: 'Bark 的设备 Key 不对',
         fix: [
           '只填地址里斜杠后面那一段，例如 https://api.day.app/AbCdEf123456 只填 AbCdEf123456',
           '不要带 https:// 或 api.day.app',
@@ -1204,6 +1209,16 @@ window.__ModuleLoader__.load({
         match: /40034100/,
         title: '超出 QQ 主动消息频控',
         fix: ['QQ 限制 20 条/分钟、1000 条/天，等一会儿再试'],
+      },
+      {
+        // 实测：AppID 不存在时返回 {"code":10004,"message":"机器人不存在"}
+        match: /10004|机器人不存在/i,
+        title: 'QQ 说「机器人不存在」—— AppID 不对',
+        fix: [
+          'AppID 是一串纯数字，从开放平台 → 你的机器人 → 开发设置 里复制',
+          '别把 QQ 号、AppSecret 当成 AppID',
+          '确认机器人还在（没被删除或下架）',
+        ],
       },
       {
         match: /QQ.*401|access_token|appid|secret/i,
@@ -1245,19 +1260,41 @@ window.__ModuleLoader__.load({
         ],
       },
       {
-        match: /errcode 400|errcode 40058|msgtype|invalid param/i,
+        // 用 \b 收边界：不加的话 "errcode 40013"（CorpID 错）也会命中 "errcode 400"，
+        // 于是用户同时看到「CorpID 不对」和「消息格式对不上」两条，被搞糊涂。
+        match: /errcode 400\b|errcode 40058|msgtype|invalid param/i,
         title: '消息格式和平台对不上',
         fix: ['回到上面把「平台」选成你实际用的那个（钉钉 / 飞书 / 企微群），选错格式对方不认'],
       },
 
       // ── Server酱 ──
       {
-        match: /Server酱|sendkey|SCT/i,
+        // 实测两种失败文本：
+        //   老版 HTTP 400 + {"message":"[AUTH]错误的Key"}
+        //   新版 {"error":"sendkey not found","code":10003}
+        match: /Server酱|sendkey|SCT|\[AUTH\]|错误的Key|40001/i,
         title: 'Server酱 SendKey 不对或额度用完',
         fix: [
-          'SendKey 是 SCT 开头的一长串，别复制成别的',
+          'SendKey 是一长串（SCT 开头是老版，sctp 开头是新版），整串复制，别截断',
+          '新版在 sc3.ft07.com/sendkey 复制；老版在 sct.ftqq.com',
           '免费版每天只有 5 条，超了就等明天或换 ntfy',
         ],
+      },
+
+      // ── 通用 HTTP 层失败 ──
+      {
+        match: /HTTP 5\d\d/i,
+        title: '对方的服务器出错了（不是你配错）',
+        fix: [
+          '这是服务端 5xx，通常是对方临时故障',
+          '等几分钟再点一次发送测试',
+          '一直这样就换个通道',
+        ],
+      },
+      {
+        match: /HTTP 413/i,
+        title: '消息太长被拒',
+        fix: ['关掉「带上 AI 最后一段回复」，或在设置里把摘要长度调短'],
       },
     ];
 
