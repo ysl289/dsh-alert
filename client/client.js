@@ -1328,6 +1328,33 @@ window.__ModuleLoader__.load({
 
     //#region IM 面板
     /**
+     * dsh-im 的渠道代号 → 中文名。
+     *
+     * 代号来自 dsh-im 内部 adapter 的 channel 字段（feishu / wecom / telegram...）。
+     * 下拉框里直接显示 feishu 这种原文对用户没意义。
+     */
+    var IM_CHANNEL_LABEL = {
+      wechat: '微信',
+      wecom: '企业微信',
+      wecomApp: '企业微信应用',
+      feishu: '飞书',
+      dingtalk: '钉钉',
+      qqbot: 'QQ',
+      telegram: 'Telegram',
+      slack: 'Slack',
+      discord: 'Discord',
+      whatsapp: 'WhatsApp',
+      imessage: 'iMessage',
+      matrix: 'Matrix',
+    };
+
+    /** 把渠道代号翻成中文；认不出就原样返回。 */
+    function imChannelName(code) {
+      var c = String(code || '').trim();
+      if (!c) return '未知渠道';
+      return IM_CHANNEL_LABEL[c] || IM_CHANNEL_LABEL[c.toLowerCase()] || c;
+    }
+    /**
      * IM 复用面板。
      *
      * 事实来源：@xmanrui/dsh-im 的 README.md 与 PROACTIVE_DELIVERY.md（v5.7.0）。
@@ -1422,10 +1449,31 @@ window.__ModuleLoader__.load({
             }),
           ),
           h(
-            'p',
-            { style: Object.assign({}, S.muted, { color: S.accent }) },
-            '装好并配好目标后，这一页会自动变成选择框，不用重新填任何东西。',
+            'div',
+            { style: S.stepWarn },
+            h('span', { style: S.stepWarnIcon }, makeIcon('alert', { size: 13 })),
+            h(
+              'span',
+              { style: S.stepWarnBody },
+              h(
+                'span',
+                { style: S.stepWarnLine },
+                '装完 dsh-im 必须重启 DSH（Desktop 重启应用，Web 重启 dsh web 再刷新浏览器）。插件不是热加载的，不重启这一页不会变。',
+              ),
+              h(
+                'span',
+                { style: S.stepWarnLine },
+                '重启回来后如果这一页还是这张引导，点下面的「我已配好，重新读取」。',
+              ),
+            ),
           ),
+          props.onReload
+            ? h(
+                Btn,
+                { S: S, onClick: props.onReload, disabled: props.reloading, icon: 'copy' },
+                props.reloading ? '读取中…' : '我已配好，重新读取',
+              )
+            : null,
         );
       }
 
@@ -1503,6 +1551,13 @@ window.__ModuleLoader__.load({
               );
             }),
           ),
+          props.onReload
+            ? h(
+                Btn,
+                { S: S, onClick: props.onReload, disabled: props.reloading, icon: 'copy' },
+                props.reloading ? '读取中…' : '配好了，重新读取',
+              )
+            : null,
         );
       }
 
@@ -1538,7 +1593,7 @@ window.__ModuleLoader__.load({
               return h(
                 'option',
                 { key: b.botId, value: b.botId },
-                (b.channel || '未知渠道') + (b.name ? ' · ' + b.name : ''),
+                imChannelName(b.channel) + (b.name ? ' · ' + b.name : ''),
               );
             }),
           ),
@@ -1546,7 +1601,7 @@ window.__ModuleLoader__.load({
             'span',
             { style: S.fieldHelp },
             selectedBot
-              ? '已选 ' + (selectedBot.channel || '') + ' 的机器人'
+              ? '已选 ' + imChannelName(selectedBot.channel) + (selectedBot.name ? ' · ' + selectedBot.name : '')
               : '列表来自你在 dsh-im 里已经接好的机器人。这里没有？先去 IM 机器人设置里添加。',
           ),
         ),
@@ -1573,7 +1628,12 @@ window.__ModuleLoader__.load({
                       h(
                         'span',
                         { style: S.stepWarnLine },
-                        '去 DSH 设置 → IM机器人 → 点这个机器人卡片右上角齿轮 →「新建目标」→ 选一个已聊会话 → 测试 → 保存。配好回来这一页会出现下拉框。',
+                        '去 DSH 设置 →「IM机器人」→ 点这个机器人卡片右上角的齿轮 →「新建目标」→ 从已聊会话里选一个 → 点「测试」→「保存目标」。',
+                      ),
+                      h(
+                        'span',
+                        { style: S.stepWarnLine },
+                        '配好后点下面的「重新读取」，下拉框才会出现。',
                       ),
                     ),
                   )
@@ -1603,6 +1663,20 @@ window.__ModuleLoader__.load({
               ),
             )
           : null,
+
+        // 兜底的刷新入口：dsh-im 里改了东西，这一页不会自动更新
+        props.onReload
+          ? h(
+              'div',
+              { style: { display: 'flex', alignItems: 'center', gap: SPACE[2], flexWrap: 'wrap' } },
+              h(
+                Btn,
+                { S: S, small: true, onClick: props.onReload, disabled: props.reloading, icon: 'copy' },
+                props.reloading ? '读取中…' : '重新读取',
+              ),
+              h('span', { style: S.fieldHelp }, '在 dsh-im 里加了机器人或目标，这里不会自动刷新，点一下重新读。'),
+            )
+          : null,
       );
     }
     //#endregion
@@ -1622,12 +1696,16 @@ window.__ModuleLoader__.load({
 
       var load = useCallback(function () {
         setError('');
-        rpcCall('status', {})
+        // 用 busy 让「重新读取」按钮有反馈。它原本只服务于保存按钮，
+        // 但读状态也可能花几百毫秒（要去问 dsh-im 有哪些机器人/目标）。
+        setBusy(true);
+        return rpcCall('status', {})
           .then(function (res) {
             if (res && res.ok) setData(res.value);
             else setError((res && res.error && res.error.message) || '读取失败');
           })
-          .catch(function (e) { setError(String((e && e.message) || e)); });
+          .catch(function (e) { setError(String((e && e.message) || e)); })
+          .then(function () { setBusy(false); });
       }, [rpcCall]);
 
       useEffect(function () { load(); }, [load]);
@@ -1914,6 +1992,8 @@ window.__ModuleLoader__.load({
                 S: S, im: im, cfg: activeCfg,
                 onChange: function (key, value) { patchChannel('im', key, value); },
                 onCopy: onCopy, copied: copied,
+                onReload: load,
+                reloading: Boolean(busy),
               })
             : h(
                 'ul',

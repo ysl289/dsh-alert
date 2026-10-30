@@ -344,6 +344,7 @@ test('IM 面板：没装时显示安装引导', async () => {
   // 直接渲染 ImPanel，不依赖模拟运行时的点击重渲染
   const React = makeRuntime().React;
   const mod = loadClient(React);
+  const reloads = [];
   const tree = mod.ImPanel({
     S: mod.buildStyles(mod.palette('deepseek', false)),
     im: { installed: false, bots: [], targets: {} },
@@ -351,17 +352,130 @@ test('IM 面板：没装时显示安装引导', async () => {
     onChange: () => {},
     onCopy: () => {},
     copied: '',
+    onReload: () => reloads.push(1),
   });
 
   const text = collectText(tree).join(' ');
   assert.match(text, /@xmanrui\/dsh-im/, '应告诉用户装哪个插件');
   assert.match(text, /IM机器人/, '应给出真实菜单名「IM机器人」');
-  // 新版把"装完会怎样"写在最后一段，措辞变了
-  assert.match(text, /自动变成选择框|不用重新填/, '应说明装完会怎样');
   assert.match(text, /微信|飞书|QQ/, '应说明能接哪些渠道');
   // 必须提到真实操作控件，不能只有模糊描述
   assert.match(text, /齿轮/, '要说明点卡片右上角齿轮');
   assert.match(text, /新建目标/, '要说明在 dsh-im 里新建目标');
+});
+
+test('IM 面板：必须说明装完要重启 DSH（否则用户会以为热加载）', async () => {
+  // 用户实测反馈：「第三步完成后什么都没有出现」——
+  // 根因是 dsh-im 装完必须重启 DSH，面板不会自动变。
+  const React = makeRuntime().React;
+  const mod = loadClient(React);
+  const tree = mod.ImPanel({
+    S: mod.buildStyles(mod.palette('deepseek', false)),
+    im: { installed: false, bots: [], targets: {} },
+    cfg: {},
+    onChange: () => {},
+    onCopy: () => {},
+    copied: '',
+    onReload: () => {},
+  });
+
+  const text = collectText(tree).join(' ');
+  assert.match(text, /重启/, '必须说清要重启 DSH');
+  assert.match(text, /不是热加载|不会自动变|不重启这一页不会变/, '要点明不是热加载');
+  // 不能再给「会自动变成选择框」这种错误承诺
+  assert.ok(
+    !/会自动变成选择框/.test(text),
+    '不能承诺自动切换 —— 实际需要重启/重新读取',
+  );
+});
+
+test('IM 面板：三个分支都要有「重新读取」入口', async () => {
+  const React = makeRuntime().React;
+  const mod = loadClient(React);
+  const S = mod.buildStyles(mod.palette('deepseek', false));
+  const base = { S, onChange: () => {}, onCopy: () => {}, copied: '', onReload: () => {} };
+
+  const branches = [
+    ['没装', { installed: false, bots: [], targets: {} }, {}],
+    ['装了没机器人', { installed: true, bots: [], targets: {} }, {}],
+    [
+      '有机器人没目标',
+      { installed: true, bots: [{ botId: 'b1', channel: 'feishu' }], targets: { b1: [] } },
+      { botId: 'b1' },
+    ],
+    [
+      '有机器人有目标',
+      { installed: true, bots: [{ botId: 'b1', channel: 'feishu' }], targets: { b1: [{ targetId: 't1', name: 'X', kind: 'user' }] } },
+      { botId: 'b1', targetId: 't1' },
+    ],
+  ];
+
+  for (const [label, im, cfg] of branches) {
+    const tree = mod.ImPanel({ ...base, im, cfg });
+    const text = collectText(tree).join(' ');
+    assert.match(text, /重新读取/, `${label} 分支应提供「重新读取」`);
+  }
+});
+
+test('IM 面板：渠道代号翻成中文，不直接显示 feishu 这种原文', async () => {
+  const React = makeRuntime().React;
+  const mod = loadClient(React);
+  const S = mod.buildStyles(mod.palette('deepseek', false));
+
+  const cases = [
+    ['feishu', '飞书'],
+    ['wechat', '微信'],
+    ['wecom', '企业微信'],
+    ['telegram', 'Telegram'],
+    ['qqbot', 'QQ'],
+  ];
+
+  for (const [code, label] of cases) {
+    const tree = mod.ImPanel({
+      S,
+      im: { installed: true, bots: [{ botId: 'b1', channel: code }], targets: { b1: [] } },
+      cfg: { botId: 'b1' },
+      onChange: () => {},
+      onCopy: () => {},
+      copied: '',
+      onReload: () => {},
+    });
+    const text = collectText(tree).join(' ');
+    assert.match(text, new RegExp(label), `${code} 应显示为「${label}」`);
+  }
+});
+
+test('IM 面板：认不出的渠道代号原样显示，不崩', async () => {
+  const React = makeRuntime().React;
+  const mod = loadClient(React);
+  const tree = mod.ImPanel({
+    S: mod.buildStyles(mod.palette('deepseek', false)),
+    im: { installed: true, bots: [{ botId: 'b1', channel: 'some-new-channel' }], targets: { b1: [] } },
+    cfg: { botId: 'b1' },
+    onChange: () => {},
+    onCopy: () => {},
+    copied: '',
+    onReload: () => {},
+  });
+  const text = collectText(tree).join(' ');
+  assert.match(text, /some-new-channel/, '未知代号应原样显示');
+});
+
+test('IM 面板：没有 channel 字段时显示占位而不是 undefined', async () => {
+  const React = makeRuntime().React;
+  const mod = loadClient(React);
+  const tree = mod.ImPanel({
+    S: mod.buildStyles(mod.palette('deepseek', false)),
+    im: { installed: true, bots: [{ botId: 'b1' }], targets: { b1: [] } },
+    cfg: { botId: 'b1' },
+    onChange: () => {},
+    onCopy: () => {},
+    copied: '',
+    onReload: () => {},
+  });
+  const text = collectText(tree).join(' ');
+  assert.ok(!/undefined/.test(text), '不该把 undefined 显示出来');
+  assert.match(text, /未知渠道/, '应有占位文字');
 });
 
 test('IM 面板：装了但没机器人时给出提示', async () => {
