@@ -295,7 +295,7 @@ test('面板渲染出带图标的通道卡片', async () => {
   const text = collectText(tree).join(' ');
 
   assert.match(text, /ntfy/, 'ntfy 卡片');
-  assert.match(text, /免费、不限条数/);
+  assert.match(text, /不限条数/);
   assert.match(text, /微信/, '企业微信卡片');
   assert.match(text, /Bark/);
 
@@ -452,7 +452,7 @@ test('ntfy 被选中时显示自动生成的主题名和复制按钮', async () 
 
   // 点 ntfy 卡片
   const picks = findAll(tree, (n) => n.type === 'button' && n.props && typeof n.props.onClick === 'function');
-  const ntfyBtn = picks.find((b) => collectText(b).join(' ').includes('免费、不限条数'));
+  const ntfyBtn = picks.find((b) => collectText(b).join(' ').includes('不限条数'));
   assert.ok(ntfyBtn, '应能找到 ntfy 卡片');
   ntfyBtn.props.onClick();
 

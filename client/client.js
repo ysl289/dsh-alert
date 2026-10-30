@@ -330,7 +330,7 @@ window.__ModuleLoader__.load({
     var GUIDES = [
       {
         id: 'ntfy', title: 'ntfy', icon: 'phone',
-        subtitle: '免费、不限条数、免注册',
+        subtitle: '装个 App 就完事，不限条数',
         ease: 1, badge: '推荐',
         steps: [
           {
@@ -368,8 +368,10 @@ window.__ModuleLoader__.load({
       },
       {
         id: 'wecom-app', title: '微信', icon: 'chat',
-        subtitle: '官方路径，免费，不经第三方',
-        ease: 2, badge: '官方',
+        subtitle: '要注册企业、配 IP，较麻烦',
+        ease: 5, badge: '较麻烦',
+        // 这条必须提前说：个人用户走到最后才会撞上 IP 白名单，白费半小时
+        warn: '这条路要先注册企业、建自建应用，而且企业微信会校验「企业可信IP」——家庭宽带是动态 IP，今天加明天就变，很折腾。个人用请优先选 ntfy（装个 App 订阅即可，不用注册、不用配 IP）。',
         steps: [
           {
             text: '注册企业微信',
@@ -421,7 +423,7 @@ window.__ModuleLoader__.load({
       {
         id: 'bark', title: 'Bark', icon: 'bell',
         subtitle: 'iPhone 专用，免费开源',
-        ease: 3,
+        ease: 2, badge: 'null',
         steps: [
           {
             text: 'App Store 装 Bark',
@@ -450,7 +452,7 @@ window.__ModuleLoader__.load({
       {
         id: 'qqbot', title: 'QQ', icon: 'robot',
         subtitle: '官方机器人，免费',
-        ease: 4,
+        ease: 7, badge: 'null',
         steps: [
           {
             text: '注册 QQ 开放平台并个人认证',
@@ -496,7 +498,7 @@ window.__ModuleLoader__.load({
       {
         id: 'serverchan', title: 'Server酱', icon: 'mail',
         subtitle: '微信收，但免费版每天只有 5 条',
-        ease: 5,
+        ease: 3, badge: 'null',
         warn: '免费版每天只能发 5 条，任务一多就不够用。想长期用建议选上面的 ntfy 或企业微信。',
         steps: [
           {
@@ -524,7 +526,7 @@ window.__ModuleLoader__.load({
       {
         id: 'webhook', title: 'Webhook', icon: 'link',
         subtitle: '钉钉 / 飞书 / 企业微信群机器人',
-        ease: 6,
+        ease: 4, badge: 'null',
         steps: [
           {
             text: '先在下面的「平台」下拉框里选你用的是哪个',
@@ -564,7 +566,7 @@ window.__ModuleLoader__.load({
       {
         id: 'custom', title: '自定义', icon: 'sliders',
         subtitle: '接到你自己的服务',
-        ease: 7,
+        ease: 6, badge: 'null',
         steps: [
           {
             text: '填你服务的接收地址',
@@ -595,7 +597,7 @@ window.__ModuleLoader__.load({
       {
         id: 'im', title: 'IM 复用', icon: 'plug',
         subtitle: '装了 IM 插件就能直接用',
-        ease: 8, requiresPlugin: true,
+        ease: 8, badge: 'null', requiresPlugin: true,
         steps: [], fields: [],
       },
     ];
@@ -1109,11 +1111,12 @@ window.__ModuleLoader__.load({
         ],
       },
       {
-        match: /errcode 60020|not allow to access from your ip|ip/i,
-        title: '企业微信 IP 白名单拦了',
+        match: /errcode 60020|not allow to access from your ip/i,
+        title: '企业微信要求「企业可信IP」，家用宽带做不了',
         fix: [
-          '管理后台 →「应用管理」→ 你的应用 →「企业可信IP」',
-          '把电脑的公网 IP 加进去，或者先清空白名单（内网自用可以先关掉限制）',
+          '这是企业微信的限制：自建应用只能从登记过的 IP 调用。家庭宽带是动态 IP，今天加了明天可能就变。',
+          '如果你有固定公网 IP：管理后台 →「应用管理」→ 你的应用 →「企业可信IP」→ 填进去。',
+          '更省事的办法：换 ntfy —— 手机装个 App、订阅一串主题名就行，不用注册企业、不用配 IP、不限条数。回到第 1 步重选 ntfy 即可。',
         ],
       },
       {

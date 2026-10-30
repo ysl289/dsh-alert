@@ -367,6 +367,45 @@ test('已有 note 的步骤确实非空且是字符串数组', () => {
   }
 });
 
+// ── 难点通道必须提前警告 ──
+
+test('企业微信必须在选之前说明「要配可信 IP、家用宽带做不了」', () => {
+  // 用户真实踩过：走到最后一步才报 60020，白折腾半小时
+  const g = byId['wecom-app'];
+  assert.ok(g.warn, '企业微信必须有 warn 前置警告');
+  assert.match(g.warn, /IP/i, '警告里要点明 IP 限制');
+  assert.match(g.warn, /动态|家庭|家用/, '要说明家用宽带的问题');
+  assert.match(g.warn, /ntfy/, '要给出更省事的替代方案');
+});
+
+test('通道按真实动手成本排序，ntfy 必须排第一', () => {
+  const sorted = [...mod.GUIDES].sort((a, b) => a.ease - b.ease);
+  assert.equal(sorted[0].id, 'ntfy', 'ntfy 最省事，应排第一');
+  assert.equal(sorted[0].badge, '推荐', 'ntfy 应带推荐标');
+
+  const wecom = byId['wecom-app'];
+  const bark = byId.bark;
+  assert.ok(
+    wecom.ease > bark.ease,
+    `企业微信(${wecom.ease}) 应排在 Bark(${bark.ease}) 之后 —— 它麻烦得多`,
+  );
+});
+
+test('麻烦的通道要在卡片上就标出来，不能只写在步骤里', () => {
+  const g = byId['wecom-app'];
+  const hint = `${g.subtitle} ${g.badge || ''}`;
+  assert.match(hint, /麻烦|折腾|较难/, `卡片上应提示难度，实际：${hint}`);
+});
+
+test('60020 的排查建议要给出「换 ntfy」这条活路', () => {
+  // 只教人配动态 IP 等于没给方案
+  const idx = SRC.indexOf('60020');
+  assert.ok(idx > 0, '应有 60020 的排查规则');
+  const block = SRC.slice(idx, idx + 900);
+  assert.match(block, /ntfy/, '要建议换用 ntfy');
+  assert.match(block, /动态|家用|家庭/, '要说明家用宽带的困难');
+});
+
 // ── 出错排查 ──
 
 test('失败时给出可照做的排查建议，而不是只甩报错', () => {

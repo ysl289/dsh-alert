@@ -292,7 +292,7 @@ node "$env:USERPROFILE\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\pnpm\b
 npm test
 ```
 
-会跑 339 项离线断言。其中「真实 Cordis」那两项需要宿主自带的 Cordis 副本
+会跑 343 项离线断言。其中「真实 Cordis」那两项需要宿主自带的 Cordis 副本
 （它打包在 `app.asar` 里，不能随仓库分发），没配就自动跳过：
 
 ```powershell
@@ -353,7 +353,7 @@ npm test
 ## 自测
 
 ```bash
-npm test              # 339 项离线断言
+npm test              # 343 项离线断言
 node test/smoke.mjs   # 起假服务器跑通整条链路
 ```
 
@@ -381,7 +381,7 @@ lib/
   im-bridge.js      IM 通道（可选，复用已装的 @xmanrui/dsh-im）
 client/
   client.js         浏览器端设置面板（__ModuleLoader__ 格式，独立打包，含两套皮肤）
-test/               339 项断言 + 端到端 + 冒烟 + 真机单发 + 真实 Cordis
+test/               343 项断言 + 端到端 + 冒烟 + 真机单发 + 真实 Cordis
 ```
 
 ## 许可
