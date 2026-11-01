@@ -19,7 +19,7 @@
 
 ---
 
-📹 **[49 秒介绍视频](docs/demo-v2.mp4)** 　·　🖼 **[设置面板截图](docs/screenshot.png)** 　·　📖 **[引导事实核对表](docs/GUIDE-SOURCES.md)**
+📹 **[50 秒介绍视频](docs/demo-v3.mp4)** 　·　🖼 **[设置面板截图](docs/screenshot.png)** 　·　📖 **[引导事实核对表](docs/GUIDE-SOURCES.md)**
 
 ---
 
